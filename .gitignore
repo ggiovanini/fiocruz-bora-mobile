@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+.expo/
+.env
+.env.*
+!.env.example
+ios/Pods/
+android/.gradle/
+*.log
