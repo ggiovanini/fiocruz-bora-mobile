@@ -1,0 +1,31 @@
+Bóra — TestFlight beta review notes
+
+Purpose
+This is an early wellbeing pilot distributed through TestFlight. The beta intentionally includes clearly labeled demonstration data and simulated institutional sign-in. It is not being presented as a finished public App Store release.
+
+Access — no credentials required
+1. On first launch, complete or skip the three introductory pages.
+2. Tap “Continuar com a Fiocruz” (Continue with Fiocruz). This is simulated sign-in; no institutional account, password, or external authentication service is needed.
+3. On the participation screen, select the required demonstration participation checkbox. The optional usage-metrics checkbox is not required.
+4. Continue, use “Participante” as a display name, and tap “Concluir e começar”.
+5. If the beta has already completed these steps, it opens the home screen directly.
+
+Main areas to review
+- Home: animated 3D character and illustrative physical/mental daily energy.
+- Center “Adicionar” action: manual activity entry, review and local activity history.
+- “Constância” in the home header: illustrative daily calendar.
+- “Nível” in the home header: separate lifetime earned EV and Vitality points (PV), with an inactivity/replenishment simulator. Inactivity only reduces PV; it never reduces lifetime EV.
+- Profile → “Controles de demonstração”: test scenarios and replay of the introduction.
+
+Simulation boundaries
+Institutional sign-in, points, levels, calendar history, team rankings and event check-in are simulated. Activities do not currently award official EV or connect to a backend. Manual demonstration records are stored locally. The evolution simulator does not change participant history or award real points. The app does not provide clinical diagnosis or treatment.
+
+Optional Apple Health access
+A compatible iPhone can optionally read steps and workouts after explicit permission. This is not required for the core review flow. The app requests read access only and does not write HealthKit data. Health records are displayed separately from the fictional points and are not credited as EV. Permission denial, unavailable HealthKit and empty results are handled in the app. Simulator results may be unavailable or empty.
+
+No payment, subscription, hardware accessory, event QR code or external account is required to review the core beta.
+
+Contact email: suporte@nibilabs.com
+Support URL supplied by the developer: https://www.nibilabs.com/solicitacao-de-exclusao-de-dados/
+Privacy policy supplied by the developer: https://www.nibilabs.com/politica-de-privacidade
+Copyright: © 2026 Nibilabs

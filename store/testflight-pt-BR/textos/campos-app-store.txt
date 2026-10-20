@@ -1,0 +1,45 @@
+SUGESTÕES DE CADASTRO — NÃO É SUBMISSÃO PÚBLICA
+
+Nome
+Bóra: jornada de bem-estar
+
+Subtítulo
+Corpo e mente em movimento
+
+Texto promocional
+Movimento e mente, juntos em uma jornada de bem-estar. Experimente o piloto Bóra e ajude a construir uma experiência que valoriza a constância.
+
+Palavras-chave
+bem-estar,habitos,atividade,mente,movimento,rotina,constancia,energia,equilibrio
+
+Categoria sugerida
+Saúde e fitness
+
+Copyright
+2026 Nibilabs
+
+URL de suporte
+https://www.nibilabs.com/solicitacao-de-exclusao-de-dados/
+
+URL da política de privacidade
+https://www.nibilabs.com/politica-de-privacidade
+
+E-mail de feedback e contato de revisão
+suporte@nibilabs.com
+
+Descrição beta
+Usar o conteúdo de descricao-beta.txt no TestFlight.
+
+O que testar
+Usar o conteúdo de o-que-testar.txt nas informações desta compilação.
+
+Notas de revisão beta
+Usar notas-revisao-beta-en.txt. O revisor não precisa de credenciais reais.
+
+PENDÊNCIAS DE PREENCHIMENTO
+Nome e sobrenome da pessoa de contato da revisão beta.
+Telefone da pessoa de contato, incluindo código do país.
+Escolha manual da classificação etária com base no conteúdo efetivo.
+Verificação das declarações de privacidade e do conteúdo das URLs, inclusive cobertura do Bóra e da consulta opcional ao Saúde.
+
+O nome sugerido precisa estar disponível no App Store Connect. Não foi pesquisado nem reservado.

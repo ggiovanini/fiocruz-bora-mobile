@@ -1,0 +1,28 @@
+Obrigado por participar do piloto Bóra!
+
+Nesta rodada, queremos avaliar clareza, navegação e estabilidade:
+
+1. Primeira abertura e entrada
+Percorra as três telas de apresentação e use “Continuar com a Fiocruz”. A entrada é simulada; não informe uma senha real. Conclua a participação de demonstração e o nome do perfil.
+
+2. Energia e personagem
+Na home, observe o personagem 3D e as duas energias. Abra “Explorar meu avatar”, altere a meta da prévia e experimente as animações. Volte à home e confira se a apresentação permanece consistente.
+
+3. Registrar uma atividade
+Use o botão central Adicionar. Escolha “Registrar por conta própria”, teste busca, filtros, nome personalizado, duração e data. Confira a revisão e o histórico. Nesta fase, atividades não concedem EV oficiais.
+
+4. Constância
+Toque em Constância na home. Navegue pelo calendário, selecione datas passadas e volte a Hoje. Os dias e valores são ilustrativos.
+
+5. Nível e Vitalidade
+Toque no Nível da home. Observe EV acumulados e PV separados. No simulador, compare sete, oito e trinta dias sem atividades e depois reponha energia. O desgaste deve afetar somente PV; o acumulado EV deve permanecer preservado.
+
+6. Apresentação e perfil
+No login, abra Cenários de demonstração → Rever apresentação inicial. Se já estiver no app, use Meu perfil → Controles de demonstração. Concluir ou pular deve voltar à origem, sem apagar seus registros.
+
+7. Consulta opcional ao Saúde
+Se quiser, teste passos e treinos em um iPhone compatível. Aceitar, recusar ou não ter dados deve ter uma explicação clara. Não é necessário compartilhar dados de saúde para participar deste teste.
+
+Ao reportar um problema, informe modelo do aparelho, versão do iOS, tela e passos. Se enviar imagem, remova informações pessoais.
+
+Feedback: suporte@nibilabs.com ou a opção Enviar Feedback no TestFlight.

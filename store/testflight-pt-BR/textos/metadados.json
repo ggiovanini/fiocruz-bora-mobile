@@ -1,0 +1,22 @@
+{
+  "locale": "pt-BR",
+  "distribution": "TestFlight pilot",
+  "name": "Bóra: jornada de bem-estar",
+  "subtitle": "Corpo e mente em movimento",
+  "promotional_text": "Movimento e mente, juntos em uma jornada de bem-estar. Experimente o piloto Bóra e ajude a construir uma experiência que valoriza a constância.",
+  "keywords": "bem-estar,habitos,atividade,mente,movimento,rotina,constancia,energia,equilibrio",
+  "primary_category_suggestion": "Health & Fitness",
+  "copyright": "2026 Nibilabs",
+  "support_url": "https://www.nibilabs.com/solicitacao-de-exclusao-de-dados/",
+  "privacy_policy_url": "https://www.nibilabs.com/politica-de-privacidade",
+  "feedback_email": "suporte@nibilabs.com",
+  "review_contact": {
+    "email": "suporte@nibilabs.com",
+    "first_name": null,
+    "last_name": null,
+    "phone": null
+  },
+  "bundle_identifier": "br.fiocruz.mobile.bora",
+  "version": "1.0.0",
+  "notes": "Nome, subtítulo, palavras-chave e texto promocional são sugestões para o cadastro/futura página. Não constituem uma submissão pública. Disponibilidade do nome não verificada. As URLs foram fornecidas pelo titular; seu conteúdo não foi verificado neste ambiente. Faltam nome e telefone do contato de revisão."
+}

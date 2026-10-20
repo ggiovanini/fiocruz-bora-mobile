@@ -1,0 +1,56 @@
+{
+  "created": "2026-10-19",
+  "locale": "pt-BR",
+  "distribution": "TestFlight pilot",
+  "copyright": "Nibilabs",
+  "images": [
+    {
+      "device": "iphone",
+      "file": "imagens/iphone/01-home-1206x2622.png",
+      "width": 1206,
+      "height": 2622,
+      "title": "Seu ritmo. Sua energia.",
+      "source": "capturas-originais/iphone/01-home.png"
+    },
+    {
+      "device": "iphone",
+      "file": "imagens/iphone/02-atividades-1206x2622.png",
+      "width": 1206,
+      "height": 2622,
+      "title": "Cada atividade conta.",
+      "source": "capturas-originais/iphone/02-atividades.png"
+    },
+    {
+      "device": "iphone",
+      "file": "imagens/iphone/03-constancia-1206x2622.png",
+      "width": 1206,
+      "height": 2622,
+      "title": "Um dia de cada vez.",
+      "source": "capturas-originais/iphone/03-constancia.png"
+    },
+    {
+      "device": "iphone",
+      "file": "imagens/iphone/04-nivel-1206x2622.png",
+      "width": 1206,
+      "height": 2622,
+      "title": "Sua evolução, com clareza.",
+      "source": "capturas-originais/iphone/04-nivel.png"
+    },
+    {
+      "device": "iphone",
+      "file": "imagens/iphone/05-apresentacao-1206x2622.png",
+      "width": 1206,
+      "height": 2622,
+      "title": "Corpo e mente. Juntos em EV.",
+      "source": "capturas-originais/iphone/05-apresentacao.png"
+    },
+    {
+      "device": "ipad",
+      "file": "imagens/ipad/01-apresentacao-2064x2752.png",
+      "width": 2064,
+      "height": 2752,
+      "title": "Sua jornada começa aqui.",
+      "source": "capturas-originais/ipad/01-apresentacao.png"
+    }
+  ]
+}

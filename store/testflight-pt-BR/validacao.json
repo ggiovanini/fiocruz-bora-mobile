@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-19",
+  "metadata": {
+    "name": 26,
+    "subtitle": 26,
+    "promotional": 143,
+    "keywordsBytes": 80,
+    "betaDescription": 1791
+  },
+  "images": [
+    {
+      "file": "imagens/iphone/01-home-1206x2622.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false
+    },
+    {
+      "file": "imagens/iphone/02-atividades-1206x2622.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false
+    },
+    {
+      "file": "imagens/iphone/03-constancia-1206x2622.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false
+    },
+    {
+      "file": "imagens/iphone/04-nivel-1206x2622.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false
+    },
+    {
+      "file": "imagens/iphone/05-apresentacao-1206x2622.png",
+      "width": 1206,
+      "height": 2622,
+      "alpha": false
+    },
+    {
+      "file": "imagens/ipad/01-apresentacao-2064x2752.png",
+      "width": 2064,
+      "height": 2752,
+      "alpha": false
+    }
+  ],
+  "pending": [
+    "Nome e sobrenome da pessoa de contato da revisão beta",
+    "Telefone do contato de revisão",
+    "Verificação pública do conteúdo das URLs fornecidas"
+  ]
+}

@@ -8,7 +8,9 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "br.fiocruz.mobile.bora",
+      "icon": "./assets/app-store/bora-icon-1024.png"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,15 +19,45 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "br.fiocruz.mobile.bora",
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_EXERCISE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true,
+            "usePrecompiledModules": false
+          },
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ],
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "O Bóra consulta seus passos e treinos dos últimos sete dias para mostrar suas atividades neste aparelho, automaticamente durante o uso após conectar, ou quando você solicita uma atualização.",
+          "NSHealthUpdateUsageDescription": "O Bóra integra-se ao app Saúde para acompanhar seus passos e treinos. Nesta versão, o aplicativo apenas consulta esses dados e não solicita permissão para gravar ou alterar informações no Saúde.",
+          "background": false
+        }
+      ],
+      "./plugins/with-health-rationale",
+      "react-native-health-connect",
+      "expo-asset"
     ],
-    "experiments": { "typedRoutes": true }
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }
