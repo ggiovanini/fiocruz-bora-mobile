@@ -1,17 +1,23 @@
+import MonthlyTeamRanking from './MonthlyTeamRanking';
 import { StyleSheet, Text, View } from 'react-native';
 import { useState } from 'react';
-import { Copy, Flow } from '@/ui/Flow';
+import { useRouter } from 'expo-router';
+import { apiEnabled } from '@/api/session';
+import { Button, Copy, Flow } from '@/ui/Flow';
 import { Chip, activityStyles } from '@/components/ActivityUI';
 import { colors } from '@/design/tokens';
 import { Icon } from '@/design/Icon';
-export default function JourneyRanking() {
+export default function JourneyRanking() { return apiEnabled ? <MonthlyTeamRanking/> : <PreviewRanking/>; }
+function PreviewRanking() {
+  const router=useRouter();
   const [about,setAbout] = useState(false);
   return <Flow title="Juntos, vamos mais longe." back={false}>
+    {apiEnabled && <Button secondary title="Conhecer e participar de equipes" onPress={()=>router.push('/teams')}/>}
     <View style={activityStyles.chips}><Chip label="Equipes" selected={!about} onPress={()=>setAbout(false)}/><Chip label="Como funciona" selected={about} onPress={()=>setAbout(true)}/></View>
     {about ? <><Copy>O ranking coletivo usa a média de EV por participante ativo. Verde e azul contribuem para a mesma pontuação.</Copy><Copy muted>Resultados são agregados. Grupos com menos de 10 participantes não são exibidos e gestores não têm acesso às suas atividades individuais.</Copy><Copy muted>Períodos e pontuações oficiais serão definidos para a campanha.</Copy></> : <>
-      <View style={s.caption}><Text style={s.eyebrow}>PRÉVIA · EQUIPES</Text><Text style={s.eyebrow}>EV MÉDIA</Text></View>
+      <View style={s.caption}><Text style={s.eyebrow}>EQUIPES</Text><Text style={s.eyebrow}>EV MÉDIA</Text></View>
       {['Equipe A','Sua equipe','Equipe C'].map((team,i)=><View key={team} style={[s.row,i===1&&s.mine]}><Text style={s.position}>{String(i+1).padStart(2,'0')}</Text><View style={s.avatar}><Icon name="trophy" color={i===1?colors.lime:colors.primary} size={22}/></View><View style={s.name}><Text style={s.title}>{team}</Text><Text style={s.subtitle}>{i===1?'É bom ter você por aqui.':'Uma jornada compartilhada.'}</Text></View><Text style={s.score}>—</Text></View>)}
-      <Copy muted>Posições ilustrativas. O ranking será atualizado com dados agregados e validados da campanha.</Copy>
+      <Copy muted>Classificação com dados de exemplo.</Copy>
     </>}
   </Flow>;
 }

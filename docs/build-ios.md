@@ -42,3 +42,23 @@ O `metro.config.js` resolve todos os imports da raiz `three` para `three.module.
 Depois de mudar a configuração Metro, reinicie o servidor com `npx expo start --clear`. Não é necessário recompilar o binário iOS para essa alteração. Os testes de resolução cobrem iOS, Android, web e a preservação do resolver padrão. Verificação executada no simulador iPhone 17 Pro / iOS 26.2: abertura da home, avatar e arco renderizados e seleção da animação de comemoração no laboratório. Suíte de 33 testes aprovada.
 
 Avisos não fatais observados: `THREE.Clock` obsoleto, parâmetro de `pixelStorei` ainda não suportado pelo Expo GL e ausência de `EXT_color_buffer_float` no simulador. Eles não foram silenciados e não impediram a renderização testada.
+
+## API separada para Archive / TestFlight
+
+O scheme Bra usa Release no Archive. A fase “Bundle React Native code and images” carrega `scripts/xcode-api-env.sh` após os arquivos de ambiente do Xcode. Em Release, o endereço vem exclusivamente de `.env.testflight` e sobrescreve um eventual endereço local herdado. Em Debug, esse passo não altera a API e o Expo mantém o carregamento habitual do `.env`.
+
+Preparar o arquivo na raiz de bora-mobile (um arquivo vazio já foi criado nesta máquina):
+
+```dotenv
+EXPO_PUBLIC_API_URL=https://seu-endereco-de-teste/api/v1
+```
+
+Usar a URL real HTTPS do servidor externo, terminando em `/api/v1`. O arquivo `.env.testflight.example` serve de modelo versionado. O arquivo preenchido `.env.testflight` é ignorado pelo Git; não incluir segredos em variáveis EXPO_PUBLIC, pois elas são incorporadas ao aplicativo.
+
+Depois abrir o workspace iOS e usar Product → Archive. O build é interrompido com orientação se o arquivo estiver ausente, vazio, usar HTTP ou um endereço local conhecido. Essa configuração vale para todos os builds Release, incluindo Profile, e atualmente destina Release ao servidor de testes. Para uma distribuição futura em produção, ajustar explicitamente o endereço ou criar outra configuração antes de arquivar.
+
+Não é necessário modificar o `.env` de desenvolvimento. Uma mudança de URL exige gerar outro bundle/Archive: editar o arquivo não altera versões já instaladas pelo TestFlight. O plugin `plugins/with-testflight-api.js` preserva a integração em um futuro `expo prebuild`.
+
+Requisitos: Node 20.19 ou superior disponível para o Xcode, dependências instaladas e acesso HTTPS ao servidor pelo aparelho. Os testes verificam seleção de Release, preservação de Debug e rejeição de configurações inválidas. Um Archive completo não foi executado; falta a URL real do ambiente externo.
+
+Referência: [variáveis de ambiente no Expo](https://docs.expo.dev/guides/environment-variables/). A escolha do ambiente aqui é explícita pela configuração do Xcode, sem usar NODE_ENV como seletor de servidor.

@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { apiEnabled } from "@/api/session";
+import { validateApiDraft } from "@/api/activityMapping";
+import { useRef, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Button,
@@ -21,7 +23,7 @@ import { missions, statusLabels } from "@/mocks/catalog";
 
 export function MissionDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { state, dispatch } = useMock();
+  const { state, dispatch, api } = useMock();
   const router = useRouter();
   const mission = missions.find((m) => m.id === id);
   const { energy, goal } = useEnergyPreview();
@@ -41,9 +43,9 @@ export function MissionDetail() {
       <Card title="Como participar">
         <Copy>{mission.description}</Copy>
         <Copy>
-          Sua meta diária: {goal} EV · {daily.total} EV na prévia
+          Sua meta diária: {goal} EV · {daily.total} EV
         </Copy>
-        <Copy muted>Esta é uma sugestão. Outras atividades físicas ou mentais também podem contribuir para a mesma meta em EV. Os valores desta prévia são ilustrativos.</Copy>
+        <Copy muted>Escolha uma atividade física ou mental para sua jornada. Os valores exibidos são exemplos.</Copy>
       </Card>
       {state.draft && (
         <Button
@@ -53,7 +55,7 @@ export function MissionDetail() {
         />
       )}
       {daily.complete ? (
-        <Notice>Meta diária atingida na prévia.</Notice>
+        <Notice>Meta diária atingida nos dados de exemplo.</Notice>
       ) : (
         <Button
           title={
@@ -80,10 +82,11 @@ export function MissionDetail() {
 }
 export { default as ActivityForm } from "./ActivityEntry";
 export function Review() {
-  const { state, dispatch } = useMock();
+  const { state, dispatch, api } = useMock();
   const router = useRouter();
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const submission = useRef(false);
   const d = state.draft;
   if (!d)
     return (
@@ -96,14 +99,22 @@ export function Review() {
       </Flow>
     );
   const mission = missions.find((m) => m.id === d.missionId);
-  function submit() {
-    if (!d || submitted) return;
-    const e = validateDraft(d);
+  async function submit() {
+    if (!d || submission.current) return;
+    const e = apiEnabled ? validateApiDraft(d, api.data.catalog, api.data.energy?.today.date ?? d.date) : validateDraft(d);
     if (e) {
       setError(e);
       return;
     }
+    submission.current = true;
     setSubmitted(true);
+    if (apiEnabled) {
+      try {
+        const id = await api.enqueue(d);
+        router.replace({ pathname: '/activity-result', params: { id } });
+      } catch (error) { setError(error instanceof Error ? error.message : 'Não foi possível salvar o registro.'); setSubmitted(false); submission.current = false; }
+      return;
+    }
     const activity: Activity = {
       ...d,
       status: "pending",
@@ -123,8 +134,7 @@ export function Review() {
         </Copy>
       </Card>
       <Copy>
-        A atividade será validada antes de atualizar seu progresso. Nesta
-        versão, o resultado é simulado.
+        {apiEnabled ? 'Sua atividade será registrada e a Energia Vital será calculada pela API.' : 'Seu registro fica salvo neste aparelho.'}
       </Copy>
       {!!error && <Notice>{error}</Notice>}
       <Button
@@ -143,7 +153,7 @@ export function Review() {
 }
 export function ActivityResult() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { state, send } = useMock();
+  const { state, send, api } = useMock();
   const router = useRouter();
   const a = state.activities.find((a) => a.id === id);
   if (!a)
@@ -157,10 +167,10 @@ export function ActivityResult() {
     );
   const descriptions = {
     pending:
-      "Salvo no aparelho. O envio simulado ocorre quando a conexão é restabelecida.",
-    sending: "Enviando para o serviço de demonstração…",
+      "Salvo no aparelho, aguardando processamento.",
+    sending: "Enviando atividade…",
     confirmed:
-      "Registro confirmado na demonstração. A regra de EV ainda será definida.",
+      apiEnabled ? a.validationStatus === 'approved' ? `Atividade registrada. ${a.awardedEv ?? 0} EV adicionados à sua jornada.` : 'Atividade registrada e aguardando validação.' : "Registro salvo neste aparelho.",
     failed:
       "Não foi possível enviar. Seu registro está salvo; tente novamente.",
   };
@@ -171,7 +181,7 @@ export function ActivityResult() {
           {a.minutes} minutos · {a.date}
         </Copy>
       </Card>
-      <Notice>{descriptions[a.status]}</Notice>
+      <Notice>{a.error ?? descriptions[a.status]}</Notice>
       {a.status === "failed" && (
         <Button
           title="Tentar novamente"
@@ -181,7 +191,7 @@ export function ActivityResult() {
           }}
         />
       )}
-      {state.offline && (
+      {!apiEnabled && state.offline && (
         <Button
           secondary
           title="Controles de conexão"
@@ -208,10 +218,11 @@ export function ActivityResult() {
   );
 }
 export function History() {
-  const { state, dispatch } = useMock();
+  const { state, dispatch, api } = useMock();
   const router = useRouter();
   return (
     <Flow title="Minhas atividades">
+      {apiEnabled && <Button secondary title={api.busy ? 'Atualizando…' : 'Atualizar atividades'} disabled={api.busy} onPress={() => { void api.refresh().catch(() => {}); }} />}
       <Button
         secondary
         title="Consultar atividades do aparelho"
@@ -235,7 +246,7 @@ export function History() {
           <Copy>
             {a.minutes} minutos · {a.date}
           </Copy>
-          <Copy muted>{statusLabels[a.status]}</Copy>
+          <Copy muted>{a.status === 'confirmed' && apiEnabled ? a.validationStatus === 'approved' ? `${a.awardedEv ?? 0} EV · Atividade registrada` : 'Aguardando validação' : statusLabels[a.status]}</Copy>
           <Button
             secondary
             title="Ver registro"
@@ -248,6 +259,7 @@ export function History() {
           />
         </Card>
       ))}
+      {apiEnabled && api.data.nextCursor && <Button secondary title="Carregar mais atividades" disabled={api.busy} onPress={() => { void api.loadMore().catch(() => {}); }} />}
       <Button
         title={state.draft ? "Continuar rascunho" : "Registrar nova atividade"}
         onPress={() => {

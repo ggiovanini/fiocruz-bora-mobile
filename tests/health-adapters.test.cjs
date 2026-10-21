@@ -36,7 +36,7 @@ const record = (id) => ({
   exerciseType: 1,
   notes: "Must not be retained",
 });
-test("Android requests read-only access and reads every workout page while skipping denied steps", async () => {
+test("Android requests only workouts and reads every workout page", async () => {
   let requested;
   let pages = [];
   const hc = {
@@ -62,7 +62,6 @@ test("Android requests read-only access and reads every workout page while skipp
   }).default;
   await adapter.requestAccess();
   assert.deepEqual(requested, [
-    { accessType: "read", recordType: "Steps" },
     { accessType: "read", recordType: "ExerciseSession" },
   ]);
   const result = await adapter.read(days);
@@ -72,13 +71,12 @@ test("Android requests read-only access and reads every workout page while skipp
   assert.equal(result.workouts[0].durationMinutes, 30);
   assert.equal(result.workouts[0].notes, undefined);
 });
-test("Android aggregates steps and distinguishes no contributing source from zero", async () => {
+test("Android does not read steps even when the system has an old steps permission", async () => {
   let call = 0;
   const hc = {
     initialize: async () => true,
     getGrantedPermissions: async () => [
-      { accessType: "read", recordType: "Steps" },
-    ],
+      ],
     aggregateRecord: async () =>
       ++call === 1
         ? { COUNT_TOTAL: 0, dataOrigins: [] }
@@ -92,9 +90,8 @@ test("Android aggregates steps and distinguishes no contributing source from zer
     "react-native-health-connect": hc,
   }).default;
   const result = await adapter.read(days);
-  assert.equal(result.steps.length, 7);
-  assert.equal(result.steps[0].count, null);
-  assert.equal(result.steps[1].count, 0);
+  assert.equal(call, 0);
+  assert.equal(result.steps.length, 0);
   assert.equal(result.workouts.length, 0);
 });
 test("Android repeated page token fails instead of returning an incomplete history", async () => {
@@ -112,7 +109,7 @@ test("Android repeated page token fails instead of returning an incomplete histo
   }).default;
   await assert.rejects(adapter.read(days), /Incomplete pagination/);
 });
-test("iOS authorizes only steps/workouts, aggregates days and normalizes active duration", async () => {
+test("iOS authorizes only workouts, never queries steps and normalizes active duration", async () => {
   let requested;
   let options;
   let calls = 0;
@@ -153,17 +150,16 @@ test("iOS authorizes only steps/workouts, aggregates days and normalizes active 
     "react-native": { Linking: {} },
   }).default;
   assert.deepEqual(await adapter.requestAccess(), {
-    steps: "unknown",
+    steps: "denied",
     workouts: "unknown",
   });
   assert.deepEqual(requested, {
-    toRead: ["HKQuantityTypeIdentifierStepCount", "HKWorkoutTypeIdentifier"],
+    toRead: ["HKWorkoutTypeIdentifier"],
     toShare: [],
   });
   const result = await adapter.read(days);
-  assert.equal(calls, 7);
-  assert.equal(result.steps[0].count, null);
-  assert.equal(result.steps[1].count, 123);
+  assert.equal(calls, 0);
+  assert.equal(result.steps.length, 0);
   assert.equal(options.limit, 0);
   assert.equal(result.workouts[0].durationMinutes, 20);
   assert.equal(result.workouts[0].metadata, undefined);

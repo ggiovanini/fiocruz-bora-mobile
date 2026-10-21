@@ -9,11 +9,12 @@ import { Button, Notice } from '@/ui/Flow';
 import { useMock } from '@/mocks/MockProvider';
 
 type Props = {
+  loading?: boolean; apiMode?: boolean;
   expired: boolean; offline: boolean; error: string;
   onLogin: () => void; onReconnect: () => void;
   onMultiple: () => void; onFailure: () => void; onIneligible: () => void; onPresentation: () => void;
 };
-export default function LoginScreen({ expired, offline, error, onLogin, onReconnect, onMultiple, onFailure, onIneligible, onPresentation }: Props) {
+export default function LoginScreen({ loading, apiMode, expired, offline, error, onLogin, onReconnect, onMultiple, onFailure, onIneligible, onPresentation }: Props) {
   const [scenarios, setScenarios] = useState(false);
   const { storageError } = useMock();
   return <SafeAreaView style={s.safe}>
@@ -28,16 +29,15 @@ export default function LoginScreen({ expired, offline, error, onLogin, onReconn
         <Image source={require('../../../assets/images/welcome-energy.jpg')} style={s.art} resizeMode="cover" accessible={false} />
         <View style={s.heroCopy}><View style={s.heroIcon}><Icon name="leaf" color={colors.lime} size={25} /></View><Text style={s.heroTitle}>Pequenos passos. Mais constância.</Text><Text style={s.heroDescription}>Cada atividade é uma forma de cuidar de você.</Text></View>
       </View>
-      {expired && <Notice>Sua sessão de demonstração expirou. Seus rascunhos e registros continuam aqui.</Notice>}
-      {storageError && <Notice>Não foi possível salvar neste aparelho. Mantenha o app aberto para preservar a demonstração.</Notice>}
+      {expired && <Notice>Sua sessão expirou. Entre novamente para continuar.</Notice>}
+      {storageError && <Notice>Não foi possível salvar neste aparelho. Mantenha o app aberto e tente novamente.</Notice>}
       <View style={s.accessCard}>
-        <View style={s.accessHeading}><View style={s.accessIcon}><Icon name="user" size={22} /></View><View style={s.accessText}><Text style={s.accessTitle}>Entrar com a Fiocruz</Text><Text style={s.accessDescription}>Seu acesso institucional, em um só lugar.</Text></View></View>
+        <View style={s.accessHeading}><View style={s.accessIcon}><Icon name="user" size={22} /></View><View style={s.accessText}><Text style={s.accessTitle}>Entrar no Bóra</Text><Text style={s.accessDescription}>Continue sua jornada de bem-estar.</Text></View></View>
         {!!error && <Text accessibilityRole="alert" style={s.error}>{error}</Text>}
-        {offline && <View style={s.offline}><Text accessibilityRole="alert" style={s.offlineText}>Você está sem conexão simulada. Restabeleça a conexão para entrar.</Text><Button title="Restabelecer conexão simulada" secondary onPress={onReconnect} /></View>}
-        <Button title={expired ? 'Entrar novamente com a Fiocruz' : 'Continuar com a Fiocruz'} onPress={onLogin} disabled={offline} />
-        <View style={s.demoNote}><View style={s.demoDot} /><Text style={s.demoText}>Modo demonstração: esta entrada é simulada. Nenhuma conta ou senha real será acessada.</Text></View>
+        {offline && <View style={s.offline}><Text accessibilityRole="alert" style={s.offlineText}>Conecte-se à internet para entrar.</Text><Button title="Tentar novamente" secondary onPress={onReconnect} /></View>}
+        <Button title={loading ? 'Conectando…' : expired ? 'Entrar novamente' : 'Continuar'} onPress={onLogin} disabled={offline || loading} />
       </View>
-      <View>
+      {__DEV__ && !apiMode && <View>
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: scenarios }} onPress={() => setScenarios(value => !value)} style={s.scenarioToggle}>
           <Icon name="menu" size={19} color={colors.muted} /><Text style={s.scenarioTitle}>Cenários de demonstração</Text><View style={{ transform: [{ rotate: scenarios ? '90deg' : '0deg' }] }}><Icon name="arrow" size={17} color={colors.muted} /></View>
         </Pressable>
@@ -48,7 +48,7 @@ export default function LoginScreen({ expired, offline, error, onLogin, onReconn
           <ActionRow icon="clock" title="Falha no acesso" description="Veja como tentar entrar novamente." onPress={onFailure} />
           <ActionRow icon="user" title="Vínculo não elegível" description="Confira a orientação para este caso." onPress={onIneligible} />
         </View>}
-      </View>
+      </View>}
       <Text style={s.footer}>Sua participação é voluntária.{ '\n' }Você escolhe o ritmo da sua jornada.</Text>
     </ScrollView>
   </SafeAreaView>;

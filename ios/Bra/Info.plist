@@ -19,7 +19,7 @@
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.0</string>
+	<string>1.0.1</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -33,7 +33,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>4</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>12.0</string>
 	<key>LSRequiresIPhoneOS</key>
@@ -45,10 +45,12 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>O Bóra usa a câmera para ler o QR Code dos eventos e confirmar sua presença.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>O Bóra consulta seus passos e treinos dos últimos sete dias para mostrar suas atividades neste aparelho, automaticamente durante o uso após conectar, ou quando você solicita uma atualização.</string>
+	<string>O Bóra lê treinos salvos no Saúde, inclusive por outros dispositivos, para você escolher quais importar para sua jornada e calcular Energia Vital.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>O Bóra integra-se ao app Saúde para acompanhar seus passos e treinos. Nesta versão, o aplicativo apenas consulta esses dados e não solicita permissão para gravar ou alterar informações no Saúde.</string>
+	<string>O Bóra consulta treinos do Saúde e não grava nem altera dados no Saúde.</string>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>

@@ -3,14 +3,18 @@
     "name": "Bóra",
     "slug": "bora-mobile",
     "scheme": "bora",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "br.fiocruz.mobile.bora",
-      "icon": "./assets/app-store/bora-icon-1024.png"
+      "icon": "./assets/app-store/bora-icon-1024.png",
+      "buildNumber": "4",
+      "infoPlist": {
+        "NSCameraUsageDescription": "O Bóra usa a câmera para ler o QR Code dos eventos e confirmar sua presença."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +26,6 @@
       "predictiveBackGestureEnabled": false,
       "package": "br.fiocruz.mobile.bora",
       "permissions": [
-        "android.permission.health.READ_STEPS",
         "android.permission.health.READ_EXERCISE"
       ]
     },
@@ -47,14 +50,23 @@
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "O Bóra consulta seus passos e treinos dos últimos sete dias para mostrar suas atividades neste aparelho, automaticamente durante o uso após conectar, ou quando você solicita uma atualização.",
-          "NSHealthUpdateUsageDescription": "O Bóra integra-se ao app Saúde para acompanhar seus passos e treinos. Nesta versão, o aplicativo apenas consulta esses dados e não solicita permissão para gravar ou alterar informações no Saúde.",
+          "NSHealthShareUsageDescription": "O Bóra lê treinos salvos no Saúde, inclusive por outros dispositivos, para você escolher quais importar para sua jornada e calcular Energia Vital.",
+          "NSHealthUpdateUsageDescription": "O Bóra consulta treinos do Saúde e não grava nem altera dados no Saúde.",
           "background": false
         }
       ],
       "./plugins/with-health-rationale",
       "react-native-health-connect",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O Bóra usa a câmera para ler o QR Code dos eventos e confirmar sua presença.",
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": true
+        }
+      ],
+      "./plugins/with-testflight-api"
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,3 +1,4 @@
+import { NotificationProvider } from '@/notifications/NotificationProvider';
 import { ObserveRoot } from "expo-observe";
 import { Stack } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
@@ -21,9 +22,9 @@ function HealthBoundary() {
   const { state, ready } = useMock();
   return (
     <HealthProvider
-      key={`${hasAccess(state)}:${state.session}:${state.organization}`}
+      key={`${state.userId ?? "prototype"}:${state.membershipId ?? ""}:${hasAccess(state)}:${state.session}`}
       enabled={ready && hasAccess(state)}
-      preferenceKey={`bora:health-preferences:v1:${state.organization}`}
+      preferenceKey={`bora:health-preferences:v2:${state.userId ?? "prototype"}:${state.membershipId ?? state.organization}`}
     >
       <Navigation />
     </HealthProvider>
@@ -64,6 +65,7 @@ function Navigation() {
     >
       <Stack.Screen name="index" />
       <Stack.Screen name="presentation" />
+      <Stack.Screen name="legal" />
       <Stack.Protected guard={!hasAccess(state)}>
         <Stack.Screen name="onboarding" />
       </Stack.Protected>
@@ -71,6 +73,9 @@ function Navigation() {
         <Stack.Screen name="(tabs)" />
         {[
           "profile",
+          "goal",
+          "notifications",
+          "medals",
           "activity",
           "review",
           "activity-result",
@@ -98,12 +103,12 @@ function Navigation() {
 }
 function PreviewBoundary() {
   const { state } = useMock();
-  return <EnergyPreviewProvider key={`${state.session}:${state.organization}`}><HealthBoundary /></EnergyPreviewProvider>;
+  return <EnergyPreviewProvider key={`${state.userId ?? "prototype"}:${state.membershipId ?? ""}:${state.session}:${state.organization}`}><HealthBoundary /></EnergyPreviewProvider>;
 }
 function RootLayout() {
   return (
     <MockProvider>
-      <PreviewBoundary />
+      <NotificationProvider><PreviewBoundary /></NotificationProvider>
     </MockProvider>
   );
 }

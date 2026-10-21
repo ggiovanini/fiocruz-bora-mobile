@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Linking } from "react-native";
 import { Redirect, useRouter } from "expo-router";
 import {
   Flow,
@@ -8,11 +9,12 @@ import {
   Copy,
   Field,
   Notice,
-  Placeholder,
 } from "@/ui/Flow";
 import LoginScreen from "./access/LoginScreen";
 import { ParticipantAvatar } from "./avatar/ParticipantAvatar";
 import { hasAccess, useMock } from "@/mocks/MockProvider";
+
+import { apiEnabled } from "@/api/session";
 
 type Step =
   | "login"
@@ -23,31 +25,50 @@ type Step =
   | "ineligible"
   | "declined";
 export default function Onboarding() {
-  const { state, dispatch } = useMock();
+  const { state, dispatch, api } = useMock();
   const router = useRouter();
   const firstStep: Step =
     state.session === "active"
-      ? state.accepted
+      ? apiEnabled && !state.membershipId ? "organization" : state.accepted
         ? "profile"
         : "consent"
       : "login";
   const [step, setStep] = useState<Step>(firstStep);
   const [accepted, setAccepted] = useState(false);
-  const [telemetry, setTelemetry] = useState(state.telemetry);
   const [name, setName] = useState(state.name);
   const [loginError, setLoginError] = useState("");
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    if (!apiEnabled || state.session !== 'active') return;
+    setStep(!state.membershipId ? 'organization' : !state.accepted ? 'consent' : 'profile');
+    setName(state.name);
+  }, [state.session, state.membershipId, state.accepted]);
+  useEffect(() => { setAccepted(false); }, [api.data.consent?.policy_version, state.membershipId]);
+  const policyAvailable = !apiEnabled || !!(api.data.consent?.configured && (api.data.consent.document_version || api.data.consent.policy_url));
   if (hasAccess(state)) return <Redirect href="/" />;
-  function login(multiple = false) {
+  async function login(multiple = false) {
+    if (loading) return;
     if (state.offline) {
       setLoginError(
         "O primeiro acesso e a reautenticação precisam de conexão.",
       );
       return;
     }
+    if (apiEnabled) {
+      setLoading(true);
+      setLoginError("");
+      try {
+        await api.login();
+      } catch (error) {
+        setLoginError(error instanceof Error ? error.message : "Não foi possível entrar.");
+      } finally { setLoading(false); }
+      return;
+    }
     dispatch({ type: "patch", value: { session: "active" } });
     setStep(multiple ? "organization" : state.accepted ? "profile" : "consent");
   }
   if (step === "login") return <LoginScreen
+    loading={loading} apiMode={apiEnabled}
     expired={state.session === "expired"} offline={state.offline} error={loginError}
     onLogin={() => login()} onMultiple={() => login(true)}
     onFailure={() => setStep("error")} onIneligible={() => setStep("ineligible")}
@@ -64,55 +85,61 @@ export default function Onboarding() {
   }[step];
   return (
     <Flow title={title} back={false}>
+      {!!loginError && <Notice>{loginError}</Notice>}
       {step === "organization" && (
         <>
           <Copy>
-            Esta tela aparece apenas quando há mais de um vínculo elegível.
+            Escolha a organização para continuar.
           </Copy>
-          {["Fiocruz · Cogetic", "Organização de demonstração"].map((org) => (
-            <Button
-              key={org}
-              secondary
-              title={org}
-              onPress={() => {
-                dispatch({ type: "patch", value: { organization: org } });
-                setStep(state.accepted ? "profile" : "consent");
-              }}
-            />
+          {(apiEnabled ? api.data.memberships.map(member => ({ id: member.id, name: member.organization_name }))
+            : [{ id: 'fiocruz', name: 'Fiocruz · Cogetic' }, { id: 'other', name: 'Outra organização' }]).map(org => (
+            <Button key={org.id} secondary title={org.name} disabled={api.busy} onPress={async () => {
+              setLoginError('');
+              try {
+                if (apiEnabled) await api.selectMembership(org.id);
+                else { dispatch({ type: 'patch', value: { organization: org.name } }); setStep(state.accepted ? 'profile' : 'consent'); }
+              } catch (error) { setLoginError(error instanceof Error ? error.message : 'Não foi possível selecionar o vínculo.'); }
+            }} />
           ))}
+          {apiEnabled && api.data.memberships.length === 0 && <Copy>Nenhum vínculo ativo foi encontrado para sua conta.</Copy>}
+          {apiEnabled && <Button secondary title="Atualizar vínculos" onPress={() => { void api.refresh().catch(() => {}); }} />}
+
         </>
       )}
       {step === "consent" && (
         <>
-          <Notice>
-            Termos ilustrativos, ainda sem validade para adesão real.
-          </Notice>
           <Card title="Participação voluntária">
             <Copy>
-              Atividades e progresso ficam no seu perfil. A proposta do piloto
-              prevê apenas indicadores agregados para gestores.
+              Você escolhe o ritmo da sua jornada. Conheça os termos e saiba
+              como suas informações são utilizadas.
             </Copy>
           </Card>
-          <Placeholder>
-            Termos completos · finalidades · versão · política de privacidade a
-            validar
-          </Placeholder>
+          {!policyAvailable && <Notice>Os termos de participação ainda não estão disponíveis. Tente novamente mais tarde.</Notice>}
+          <Button secondary title="Ler Termos de Uso" onPress={() => {
+            const policy = api.data.consent;
+            if (apiEnabled && !policy?.document_slug && policy?.policy_url) {
+              void Linking.openURL(policy.policy_url).catch(() => setLoginError('Não foi possível abrir os termos.'));
+            } else router.push({ pathname: '/legal', params: { slug: policy?.document_slug ?? 'termos-de-uso', ...(policy?.document_version ? { version: String(policy.document_version) } : {}) } });
+          }} />
+          <Button secondary title="Ler Política de Privacidade" onPress={() => router.push({ pathname: '/legal', params: { slug: 'politica-de-privacidade' } })} />
           <Check
-            label="Li o resumo e quero simular minha participação."
+            label="Li os termos e autorizo o registro das minhas atividades."
             value={accepted}
             onChange={setAccepted}
           />
-          <Check
-            label="Simular consentimento opcional para métricas de uso."
-            value={telemetry}
-            onChange={setTelemetry}
-          />
           <Button
             title="Continuar"
-            disabled={!accepted}
-            onPress={() => {
-              dispatch({ type: "patch", value: { accepted: true, telemetry } });
-              setStep("profile");
+            disabled={!accepted || loading || !policyAvailable}
+            onPress={async () => {
+              setLoading(true); setLoginError('');
+              try {
+                if (apiEnabled) await api.acceptConsent();
+                else { dispatch({ type: "patch", value: { accepted: true, telemetry: false } }); setStep("profile"); }
+              } catch (error) {
+                setLoginError(error instanceof Error ? error.message : 'Não foi possível registrar sua decisão.');
+                await api.refresh().catch(() => {});
+                setAccepted(false);
+              } finally { setLoading(false); }
             }}
           />
           <Button
@@ -123,9 +150,6 @@ export default function Onboarding() {
               setStep("declined");
             }}
           />
-          <Copy muted>
-            Mesmo com esta opção marcada, a demonstração não envia telemetria.
-          </Copy>
         </>
       )}
       {step === "profile" && (
@@ -143,12 +167,12 @@ export default function Onboarding() {
           <Button
             title="Concluir e começar"
             disabled={!name.trim()}
-            onPress={() =>
-              dispatch({
-                type: "patch",
-                value: { name: name.trim(), profileComplete: true },
-              })
-            }
+            onPress={async () => {
+              try {
+                if (apiEnabled) await api.saveProfile(name);
+                else dispatch({ type: 'patch', value: { name: name.trim(), profileComplete: true } });
+              } catch (error) { setLoginError(error instanceof Error ? error.message : 'Não foi possível salvar.'); }
+            }}
           />
         </>
       )}
@@ -161,14 +185,13 @@ export default function Onboarding() {
       {step === "ineligible" && (
         <>
           <Copy>
-            A identidade foi reconhecida no cenário simulado, mas não possui
-            vínculo elegível para o piloto.
+            Não encontramos um vínculo ativo para este acesso.
           </Copy>
           <Card title="Suporte">
-            <Copy>Canal institucional a definir com a Cogetic.</Copy>
+            <Copy>Procure a equipe responsável pelo seu acesso.</Copy>
           </Card>
           <Button
-            title="Usar outra conta simulada"
+            title="Usar outra conta"
             onPress={() => setStep("login")}
           />
         </>
@@ -183,8 +206,8 @@ export default function Onboarding() {
             secondary
             title="Rever os termos"
             onPress={() => {
-              dispatch({ type: "patch", value: { session: "active" } });
-              setStep("consent");
+              if (apiEnabled) setStep('login');
+              else { dispatch({ type: "patch", value: { session: "active" } }); setStep("consent"); }
             }}
           />
         </>

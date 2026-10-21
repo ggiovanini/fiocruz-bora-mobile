@@ -1,3 +1,5 @@
+import type { ManualPayload } from "../api/contracts";
+
 export type ActivityStatus = "pending" | "sending" | "confirmed" | "failed";
 export type Draft = {
   id: string;
@@ -6,10 +8,17 @@ export type Draft = {
   date: string;
   missionId?: string;
   activityName?: string;
+  activityCode?: string;
+  energyDimension?: 'physical' | 'intellectual';
 };
-export type Activity = Draft & { status: ActivityStatus; createdAt: string };
+export type Activity = Draft & {
+  status: ActivityStatus; createdAt: string; operationKey?: string; membershipId?: string;
+  serverId?: string; awardedEv?: number | null; validationStatus?: string; error?: string; apiPayload?: ManualPayload;
+};
 export type MockState = {
   version: 1;
+  userId?: string;
+  membershipId?: string;
   session: "signedOut" | "active" | "expired";
   accepted: boolean;
   profileComplete: boolean;
@@ -60,9 +69,11 @@ export type Action =
   | { type: "enqueue"; value: Activity }
   | { type: "status"; id: string; value: ActivityStatus }
   | { type: "checkin"; id: string }
+  | { type: "replace"; value: MockState }
   | { type: "reset" };
 export function reducer(state: MockState, action: Action): MockState {
   switch (action.type) {
+    case "replace": return action.value;
     case "patch":
       return { ...state, ...action.value };
     case "draft":
@@ -108,7 +119,7 @@ export const activityOptions = [
   { type: "Outra atividade", group: "other", icon: "plus" },
 ] as const;
 export function activityTitle(draft: Draft) {
-  return draft.type === "Outra atividade" ? draft.activityName?.trim() || draft.type : draft.type;
+  return (draft.type === "Outra atividade" || draft.activityCode === "other") ? draft.activityName?.trim() || draft.type : draft.type;
 }
 export function validateDraft(draft: Draft): string | null {
   if (!activityOptions.some(option => option.type === draft.type))

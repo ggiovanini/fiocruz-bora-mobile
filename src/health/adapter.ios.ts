@@ -2,7 +2,6 @@ import { Linking } from "react-native";
 import {
   normalizeWorkout,
   type HealthAdapter,
-  type HealthSteps,
   type HealthWorkout,
 } from "./model";
 // Import on user action so web/old native builds remain usable without the native module.
@@ -16,34 +15,14 @@ const adapter: HealthAdapter = {
   async requestAccess() {
     const hk = await healthKit();
     await hk.requestAuthorization({
-      toRead: ["HKQuantityTypeIdentifierStepCount", "HKWorkoutTypeIdentifier"],
+      toRead: ["HKWorkoutTypeIdentifier"],
       toShare: [],
     });
     // HealthKit deliberately does not disclose read authorization status.
-    return { steps: "unknown", workouts: "unknown" };
+    return { steps: "denied", workouts: "unknown" };
   },
   async read(days) {
     const hk = await healthKit();
-    const steps: HealthSteps[] = [];
-    for (const day of days) {
-      const result = await hk.queryStatisticsForQuantity(
-        "HKQuantityTypeIdentifierStepCount",
-        ["cumulativeSum"],
-        {
-          unit: "count",
-          filter: { date: { startDate: day.start, endDate: day.end } },
-        },
-      );
-      const value = result.sumQuantity?.quantity;
-      steps.push({
-        date: day.date,
-        count:
-          typeof value === "number" && Number.isFinite(value)
-            ? Math.max(0, Math.round(value))
-            : null,
-        source: "healthkit",
-      });
-    }
     const records = await hk.queryWorkoutSamples({
       limit: 0,
       ascending: false,
@@ -84,8 +63,8 @@ const adapter: HealthAdapter = {
     }
     return {
       source: "healthkit",
-      access: { steps: "unknown", workouts: "unknown" },
-      steps,
+      access: { steps: "denied", workouts: "unknown" },
+      steps: [],
       workouts,
       syncedAt: new Date().toISOString(),
     };

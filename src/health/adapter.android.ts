@@ -2,7 +2,6 @@ import {
   normalizeWorkout,
   type Access,
   type HealthAdapter,
-  type HealthSteps,
   type HealthWorkout,
 } from "./model";
 const healthConnect = () => import("react-native-health-connect");
@@ -15,7 +14,7 @@ async function permissions(): Promise<Access> {
         "recordType" in p && p.recordType === type && p.accessType === "read",
     );
   return {
-    steps: has("Steps") ? "granted" : "denied",
+    steps: "denied",
     workouts: has("ExerciseSession") ? "granted" : "denied",
   };
 }
@@ -37,7 +36,6 @@ const adapter: HealthAdapter = {
   async requestAccess() {
     const hc = await healthConnect();
     await hc.requestPermission([
-      { accessType: "read", recordType: "Steps" },
       { accessType: "read", recordType: "ExerciseSession" },
     ]);
     return permissions();
@@ -46,29 +44,7 @@ const adapter: HealthAdapter = {
     const hc = await healthConnect();
     if (!(await hc.initialize())) throw new Error("Unavailable");
     const access = await permissions();
-    const steps: HealthSteps[] = [];
     const workouts: HealthWorkout[] = [];
-    if (access.steps === "granted")
-      for (const day of days) {
-        const result = await hc.aggregateRecord({
-          recordType: "Steps",
-          timeRangeFilter: {
-            operator: "between",
-            startTime: day.start.toISOString(),
-            endTime: day.end.toISOString(),
-          },
-        });
-        steps.push({
-          date: day.date,
-          count:
-            result.dataOrigins.length > 0 &&
-            typeof result.COUNT_TOTAL === "number" &&
-            Number.isFinite(result.COUNT_TOTAL)
-              ? Math.max(0, Math.round(result.COUNT_TOTAL))
-              : null,
-          source: "health-connect",
-        });
-      }
     if (access.workouts === "granted") {
       const names: Record<number, string> = {
         [hc.ExerciseType.WALKING]: "Caminhada",
@@ -117,7 +93,7 @@ const adapter: HealthAdapter = {
     return {
       source: "health-connect",
       access,
-      steps,
+      steps: [],
       workouts,
       syncedAt: new Date().toISOString(),
     };

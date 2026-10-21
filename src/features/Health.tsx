@@ -9,6 +9,7 @@ import {
   Notice,
   Placeholder,
 } from "@/ui/Flow";
+import HealthWorkoutImport from "./HealthWorkoutImport";
 import { useHealth } from "@/health/HealthProvider";
 export default function Health() {
   const { session, state, adapter, ready, preferenceError } = useHealth();
@@ -17,38 +18,30 @@ export default function Health() {
   const native = Platform.OS === "ios" || Platform.OS === "android";
   return (
     <Flow title="Dados de atividade" demo={false}>
-      <Notice>
-        Teste de integração real com {adapter.label}. O registro manual continua
-        disponível.
-      </Notice>
       <Card title="Você escolhe o que compartilhar">
         <Copy>
-          Consultar passos por dia e treinos dos últimos sete dias: tipo,
-          início, fim, duração e aplicativo de origem.
+          Conecte o {adapter.label} para consultar seus treinos
+          dos últimos sete dias.
         </Copy>
         <Copy>
-          Após conectar, a atualização automática consulta os dados ao abrir ou
-          voltar ao app, se a última tentativa tiver pelo menos cinco minutos, e
-          a cada cinco minutos durante o uso. Você pode desativá-la abaixo. Sem
-          gravação no sistema de saúde, GPS, dados cardíacos ou envio ao
-          servidor.
+          A atualização automática consulta seus dados durante o uso do app.
+          Você pode desativá-la ou desconectar quando quiser.
         </Copy>
         <Copy muted>
-          Neste teste, os dados ficam apenas na memória durante a sessão. Ao
-          sair da conta ou fechar o app, a leitura é limpa. Apenas suas
-          preferências de conexão e atualização são salvas neste aparelho. Eles
-          não geram Energia Vital.
+          A leitura fica na memória durante a sessão. Para registrar na jornada,
+          selecione um treino e autorize seu envio ao servidor. A consulta sozinha
+          não gera Energia Vital; passos não são consultados.
         </Copy>
       </Card>
       {!native ? (
         <Placeholder>
-          Abra um build nativo do Bora em um iPhone ou Android compatível. Esta
-          integração não funciona no navegador ou no Expo Go.
+          A conexão com dados de atividade está disponível no aplicativo
+          instalado em um iPhone ou Android compatível.
         </Placeholder>
       ) : (
         <>
           <Check
-            label="Quero consultar meus passos e treinos neste aparelho para testar a integração."
+            label="Quero consultar meus treinos neste aparelho."
             value={agree || state.connected}
             onChange={(value) => {
               setAgree(value);
@@ -164,21 +157,7 @@ export default function Health() {
             {new Date(state.snapshot.syncedAt).toLocaleString("pt-BR")}.
             Atualize após alterar permissões ou atividades no sistema.
           </Copy>
-          <Card title="Passos por dia">
-            {state.snapshot.access.steps === "denied" ? (
-              <Copy>Leitura de passos não autorizada.</Copy>
-            ) : (
-              state.snapshot.steps.map((day) => (
-                <Copy key={day.date}>
-                  {day.date.split("-").reverse().join("/")} ·{" "}
-                  {day.count === null
-                    ? "Sem dados disponíveis"
-                    : `${day.count.toLocaleString("pt-BR")} passos`}
-                </Copy>
-              ))
-            )}
-          </Card>
-          <Copy>Treinos importados · {state.snapshot.workouts.length}</Copy>
+          <Copy>Treinos encontrados · {state.snapshot.workouts.length}</Copy>
           {state.snapshot.access.workouts === "denied" ? (
             <Notice>Leitura de treinos não autorizada.</Notice>
           ) : (
@@ -189,21 +168,7 @@ export default function Health() {
               </Placeholder>
             )
           )}
-          {state.snapshot.workouts.map((workout) => (
-            <Card key={workout.id} title={workout.kind}>
-              <Copy>{new Date(workout.start).toLocaleString("pt-BR")}</Copy>
-              <Copy>
-                {Math.round(workout.durationMinutes * 10) / 10} minutos
-                {workout.source === "health-connect"
-                  ? " · intervalo entre início e fim"
-                  : ""}
-              </Copy>
-              <Copy muted>
-                Origem: {workout.origin} · {adapter.label}
-              </Copy>
-              <Copy>Importado no aparelho · não enviado à API</Copy>
-            </Card>
-          ))}
+          {state.snapshot.workouts.map(workout => <HealthWorkoutImport key={workout.id} workout={workout}/>)}
         </>
       )}
     </Flow>

@@ -1,3 +1,5 @@
+import { apiEnabled } from '@/api/session';
+import { useMock } from '@/mocks/MockProvider';
 import { createContext, useContext, useState, type PropsWithChildren } from 'react';
 const Context = createContext<{
   energy: { green: number; blue: number };
@@ -5,11 +7,12 @@ const Context = createContext<{
   goal: number;
   setGoal: React.Dispatch<React.SetStateAction<number>>;
 } | null>(null);
-/** Shared, explicitly fictional preview. Activity records do not award points here. */
+/** Official API energy when connected; isolated fixtures only without an API configuration. */
 export function EnergyPreviewProvider({ children }: PropsWithChildren) {
+  const { api } = useMock();
   const [energy, setEnergy] = useState({ green: 40, blue: 25 });
   const [goal, setGoal] = useState(100);
-  return <Context.Provider value={{ energy, setEnergy, goal, setGoal }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ energy: apiEnabled ? { green: api.data.energy?.today.physical_ev ?? 0, blue: api.data.energy?.today.intellectual_ev ?? 0 } : energy, setEnergy: apiEnabled ? () => {} : setEnergy, goal: apiEnabled ? api.data.energy?.today.goal_ev ?? 100 : goal, setGoal: apiEnabled ? () => {} : setGoal }}>{children}</Context.Provider>;
 }
 export function useEnergyPreview() {
   const context = useContext(Context);

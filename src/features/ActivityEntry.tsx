@@ -1,3 +1,5 @@
+import { apiEnabled } from '@/api/session';
+import { validateApiDraft } from '@/api/activityMapping';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -10,7 +12,7 @@ import { activityOptions, activityTitle, localDate, newDraft, validateDraft } fr
 import { missions } from '@/mocks/catalog';
 function yesterday() { const date = new Date(); date.setDate(date.getDate() - 1); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`; }
 export default function ActivityEntry() {
-  const { state, dispatch } = useMock();
+  const { state, dispatch, api } = useMock();
   const router = useRouter();
   const [editing, setEditing] = useState(!!state.draft);
   const [choosing, setChoosing] = useState(!state.draft?.type);
@@ -19,6 +21,15 @@ export default function ActivityEntry() {
   const [customDate, setCustomDate] = useState(false);
   const [error, setError] = useState('');
   const draft = state.draft;
+  const today = api.data.energy?.today.date ?? localDate();
+  const yesterdayDate = new Date(`${today}T12:00:00Z`); yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
+  const yesterdayKey = yesterdayDate.toISOString().slice(0, 10);
+  const options = apiEnabled ? api.data.catalog.map(item => ({ type: item.name, code: item.code, group: item.discovery_group,
+    custom: item.requires_custom_name, icon: item.discovery_group === 'mind' ? 'book' as const : 'activity' as const }))
+    : activityOptions.map(item => ({ ...item, code: undefined, custom: item.type === 'Outra atividade' }));
+  const selectedType = options.find(item => apiEnabled ? item.code === draft?.activityCode : item.type === draft?.type);
+  const customType = options.find(item => item.custom);
+  const makeDraft = () => ({ ...newDraft(), date: today });
   const update = (value: Partial<NonNullable<typeof draft>>) => {
     if (draft) dispatch({ type: 'draft', value: { ...draft, ...value } });
     setError('');
@@ -29,16 +40,16 @@ export default function ActivityEntry() {
     {draft && <View style={s.resume}><Text style={ui.heading}>Você tem um rascunho</Text><Text style={ui.muted}>{activityTitle(draft) || 'Atividade ainda não escolhida'}</Text><Button title="Continuar meu registro" onPress={() => setEditing(true)} /></View>}
     <View style={{ marginTop: 12 }}>
       <Text style={ui.eyebrow}>Como você quer registrar?</Text>
-      <ActionRow icon="edit" title="Registrar por conta própria" description="Escolha uma atividade e conte quanto tempo dedicou." color={colors.lime} onPress={() => { if (!draft) dispatch({ type: 'draft', value: { ...newDraft(), type: '' } }); setEditing(true); if (!draft) setChoosing(true); }}/>
+      <ActionRow icon="edit" title="Registrar por conta própria" description="Escolha uma atividade e conte quanto tempo dedicou." color={colors.lime} onPress={() => { if (!draft) dispatch({ type: 'draft', value: { ...makeDraft(), type: '' } }); setEditing(true); if (!draft) setChoosing(true); }}/>
       <ActionRow icon="phone" title="Trazer dados do aparelho" description="Consulte passos e treinos. Você controla a conexão." onPress={() => router.push('/health')}/>
       <ActionRow icon="qr" title="Participar de um evento" description="Encontre um evento e registre sua presença." onPress={() => router.push('/events')}/>
     </View>
     <View style={s.discovery}><Text style={ui.heading}>Ainda procurando inspiração?</Text><Text style={ui.muted}>Descubra conteúdos para aprender, desacelerar e cuidar de você.</Text><Pressable accessibilityRole="button" onPress={() => router.push('/content')} style={s.textLink}><Text style={s.textLinkLabel}>Explorar conteúdos</Text><Icon name="arrow" size={17}/></Pressable></View>
-    <Text style={ui.muted}>Nesta prévia, registros manuais e eventos são simulados. Os dados do aparelho ainda não concedem EV.</Text>
+    {!apiEnabled && <Text style={ui.muted}>Os registros ainda são locais e não geram Energia Vital.</Text>}
   </Flow>;
   const mission = missions.find(m => m.id === draft.missionId);
   const query = search.trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-  const visible = activityOptions.filter(option => option.group !== 'other' && (filter === 'all' || option.group === filter) && option.type.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(query));
+  const visible = options.filter(option => option.group !== 'other' && (filter === 'all' || option.group === filter) && option.type.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(query));
   return <Flow key={choosing ? "choose" : "details"} title="Um momento para você.">
     <View style={s.step}><Text style={ui.eyebrow}>01 · Sua atividade</Text><Text style={s.stepMuted}>02 · Revisão</Text></View>
     <Text style={ui.muted}>Registre o que fez. A Energia Vital reúne movimento e mente em uma mesma meta.</Text>
@@ -47,23 +58,27 @@ export default function ActivityEntry() {
     <View style={s.search}><Icon name="search" size={19}/><View style={{flex:1}}><Field label="Buscar atividade" value={search} onChangeText={setSearch} placeholder="O que fez hoje?" autoCorrect={false}/></View></View>
     <View style={ui.chips}>{[['all','Todas'],['movement','Movimento'],['mind','Mente'],['wellbeing','Bem-estar']].map(([value,label]) => <Chip key={value} label={label} selected={filter===value} onPress={() => setFilter(value)}/>)}</View>
     <View style={s.options}>
-      {visible.map(option => { const selected = draft.type === option.type; return <Pressable key={option.type} accessibilityRole="button" accessibilityLabel={option.type} accessibilityState={{selected}} onPress={() => { update({type:option.type, activityName:undefined}); setChoosing(false); }} style={[s.option,selected&&s.optionSelected]}><Icon name={option.icon} size={20} color={selected ? colors.text : colors.muted}/><Text style={[s.optionLabel,selected&&{color:colors.text}]}>{option.type}</Text>{selected && <Icon name="check" size={15} color={colors.text}/>}</Pressable>; })}
+      {visible.map(option => { const selected = draft.type === option.type; return <Pressable key={option.type} accessibilityRole="button" accessibilityLabel={option.type} accessibilityState={{selected}} onPress={() => { update({type:option.type, activityCode:option.code, activityName:undefined, energyDimension:undefined}); setChoosing(false); }} style={[s.option,selected&&s.optionSelected]}><Icon name={option.icon} size={20} color={selected ? colors.text : colors.muted}/><Text style={[s.optionLabel,selected&&{color:colors.text}]}>{option.type}</Text>{selected && <Icon name="check" size={15} color={colors.text}/>}</Pressable>; })}
     </View>
     {!visible.length && <Text style={ui.muted}>Não encontramos essa sugestão. Você pode nomear sua atividade abaixo.</Text>}
-    <Pressable accessibilityRole="button" accessibilityState={{selected:draft.type==='Outra atividade'}} onPress={() => { update({type:'Outra atividade'}); setChoosing(false); }} style={s.other}><Icon name={draft.type==='Outra atividade'?'check':'plus'} size={19}/><Text style={s.otherLabel}>Outra atividade</Text><Text style={s.otherHint}>Conte do seu jeito</Text></Pressable>
-    </> : <Pressable accessibilityRole="button" accessibilityLabel="Alterar atividade selecionada" onPress={() => setChoosing(true)} style={s.selectedCard}><Icon name={draft.type==='Outra atividade'?'plus':activityOptions.find(option=>option.type===draft.type)?.icon || 'activity'} color={colors.text}/><View style={{flex:1,gap:5}}><Text style={ui.eyebrow}>SUA ESCOLHA</Text><Text style={ui.heading}>{activityTitle(draft)}</Text></View><Text style={s.textLinkLabel}>Alterar</Text></Pressable>}
-    {draft.type==='Outra atividade' && <Field label="Nome da atividade" placeholder="Ex.: tocar um instrumento" value={draft.activityName || ''} maxLength={80} onChangeText={activityName => update({activityName})}/>}
+    {customType && <Pressable accessibilityRole="button" accessibilityState={{selected:selectedType?.custom}} onPress={() => { update({type:customType?.type ?? 'Outra atividade',activityCode:customType?.code,energyDimension:undefined}); setChoosing(false); }} style={s.other}><Icon name={selectedType?.custom?'check':'plus'} size={19}/><Text style={s.otherLabel}>Outra atividade</Text><Text style={s.otherHint}>Conte do seu jeito</Text></Pressable>}
+    </> : <Pressable accessibilityRole="button" accessibilityLabel="Alterar atividade selecionada" onPress={() => setChoosing(true)} style={s.selectedCard}><Icon name={selectedType?.custom?'plus':selectedType?.icon || 'activity'} color={colors.text}/><View style={{flex:1,gap:5}}><Text style={ui.eyebrow}>SUA ESCOLHA</Text><Text style={ui.heading}>{activityTitle(draft)}</Text></View><Text style={s.textLinkLabel}>Alterar</Text></Pressable>}
+    {selectedType?.custom && <Field label="Nome da atividade" placeholder="Ex.: tocar um instrumento" value={draft.activityName || ''} maxLength={80} onChangeText={activityName => update({activityName})}/>}
     {!!draft.type && <>
     <View style={ui.line}/>
     <Text style={ui.heading}>Quanto tempo você dedicou?</Text>
     <View style={ui.chips}>{['10','20','30','45'].map(value => <Chip key={value} label={`${value} min`} selected={draft.minutes===value} onPress={() => update({minutes:value})}/>)}</View>
     <Field label="Tempo em minutos" value={draft.minutes} onChangeText={minutes => update({minutes})} keyboardType="number-pad" placeholder="Ou informe outro tempo" maxLength={4}/>
     <Text style={ui.heading}>Quando aconteceu?</Text>
-    <View style={ui.chips}><Chip label="Hoje" selected={!customDate&&draft.date===localDate()} onPress={() => {setCustomDate(false);update({date:localDate()});}}/><Chip label="Ontem" selected={!customDate&&draft.date===yesterday()} onPress={() => {setCustomDate(false);update({date:yesterday()});}}/><Chip label="Outra data" selected={customDate || ![localDate(),yesterday()].includes(draft.date)} onPress={() => setCustomDate(true)}/></View>
-    {(customDate || ![localDate(),yesterday()].includes(draft.date)) && <Field label="Data (AAAA-MM-DD)" value={draft.date} onChangeText={date => update({date})} maxLength={10} placeholder="AAAA-MM-DD"/>}
-    <View style={s.validation}><Icon name="leaf" size={20}/><Text style={[ui.muted,{flex:1}]}>Seu registro será revisado antes de gerar EV. As sugestões são formas de encontrar atividades; a classificação da energia e os pontos serão definidos pelas regras do Bóra.</Text></View>
+    <View style={ui.chips}><Chip label="Hoje" selected={!customDate&&draft.date===today} onPress={() => {setCustomDate(false);update({date:today});}}/><Chip label="Ontem" selected={!customDate&&draft.date===yesterdayKey} onPress={() => {setCustomDate(false);update({date:yesterdayKey});}}/><Chip label="Outra data" selected={customDate || ![today,yesterdayKey].includes(draft.date)} onPress={() => setCustomDate(true)}/></View>
+    {(customDate || ![today,yesterdayKey].includes(draft.date)) && <Field label="Data (AAAA-MM-DD)" value={draft.date} onChangeText={date => update({date})} maxLength={10} placeholder="AAAA-MM-DD"/>}
+    {apiEnabled && api.data.catalog.find(item => item.code === draft.activityCode)?.energy_dimension === 'choice' && <>
+      <Text style={ui.heading}>Como essa atividade contribuiu para você?</Text>
+      <View style={ui.chips}><Chip label="Física" selected={draft.energyDimension === 'physical'} onPress={() => update({energyDimension:'physical'})} /><Chip label="Mental" selected={draft.energyDimension === 'intellectual'} onPress={() => update({energyDimension:'intellectual'})} /></View>
+    </>}
+    <View style={s.validation}><Icon name="leaf" size={20}/><Text style={[ui.muted,{flex:1}]}>{apiEnabled ? 'Registre hoje ou os seis dias anteriores. Os pontos são calculados pelas regras vigentes na data da atividade.' : 'Seu registro será revisado antes de gerar EV.'}</Text></View>
     {!!error && <Notice>{error}</Notice>}
-    <Button title="Revisar meu registro" onPress={() => {const message=validateDraft(draft);setError(message||'');if(!message)router.push('/review');}}/>
+    <Button title="Revisar meu registro" onPress={() => {const message=apiEnabled ? validateApiDraft(draft,api.data.catalog,today) : validateDraft(draft);setError(message||'');if(!message)router.push('/review');}}/>
     <Pressable accessibilityRole="button" onPress={() => router.replace('/home')} style={s.textLink}><Text style={s.textLinkLabel}>Salvar rascunho e continuar depois</Text></Pressable>
     </>}
     <Pressable accessibilityRole="button" onPress={() => setEditing(false)} style={s.textLink}><Text style={ui.muted}>Ver outras formas de registrar</Text></Pressable>

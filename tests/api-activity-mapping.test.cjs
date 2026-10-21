@@ -1,0 +1,44 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {readFileSync}=require('node:fs');
+const Module=require('node:module');
+const ts=require('typescript');
+const model=new Module('activityMapping');
+model._compile(ts.transpileModule(readFileSync('src/api/activityMapping.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,'activityMapping.cjs');
+const {prepareActivity,validateApiDraft,mergeActivities}=model.exports;
+const item={code:'walking',name:'Caminhada',discovery_group:'movement',requires_custom_name:false,energy_dimension:'physical',timezone:'America/Sao_Paulo',recording_window_days:7};
+const draft={id:'old-prototype-id',type:'Caminhada',activityCode:'walking',minutes:'30',date:'2026-10-20'};
+test('a queued manual activity freezes two distinct UUIDs and the exact server payload',()=>{
+ const activity=prepareActivity(draft,[item],'membership-one','2026-10-20');
+ const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+ assert.match(activity.id,uuid);assert.match(activity.operationKey,uuid);assert.notEqual(activity.id,activity.operationKey);
+ assert.notEqual(activity.id,draft.id);
+ assert.deepEqual(activity.apiPayload,{client_activity_id:activity.id,activity_type:'walking',activity_date:'2026-10-20',timezone:'America/Sao_Paulo',duration_seconds:1800});
+ assert.equal(activity.membershipId,'membership-one');
+ const persisted=JSON.parse(JSON.stringify(activity));
+ assert.deepEqual(persisted.apiPayload,activity.apiPayload);assert.equal(persisted.operationKey,activity.operationKey);
+ assert.equal(persisted.apiPayload.ev,undefined);assert.equal(persisted.apiPayload.user_id,undefined);
+});
+test('API catalogue controls classification, custom names and the seven-day date window',()=>{
+ const choice={...item,code:'other',name:'Uma atividade renomeada',energy_dimension:'choice',requires_custom_name:true};
+ const custom={...draft,activityCode:'other',activityName:'Tocar violão',energyDimension:'intellectual'};
+ assert.equal(validateApiDraft(custom,[choice],'2026-10-20'),null);
+ assert.match(validateApiDraft({...custom,energyDimension:undefined},[choice],'2026-10-20'),/Escolha/);
+ assert.match(validateApiDraft({...custom,activityName:'a'},[choice],'2026-10-20'),/nome/);
+ assert.match(validateApiDraft({...draft,date:'2026-10-13'},[item],'2026-10-20'),/seis dias/);
+ assert.equal(validateApiDraft({...draft,date:'2026-10-14'},[item],'2026-10-20'),null);
+ assert.match(validateApiDraft({...draft,date:'2026-10-21'},[item],'2026-10-20'),/seis dias/);
+ assert.match(validateApiDraft({...draft,date:'2026-02-30'},[item],'2026-10-20'),/seis dias/);
+ assert.match(validateApiDraft({...draft,activityCode:undefined},[item],'2026-10-20'),/Selecione/);
+ assert.deepEqual(prepareActivity(custom,[choice],'membership','2026-10-20').apiPayload.energy_dimension,'intellectual');
+});
+test('history reconciles a lost response by client identity without duplicating pending rows or inventing EV',()=>{
+ const activity=prepareActivity(draft,[item],'member','2026-10-20');
+ const row={id:'server-id',client_activity_id:activity.id,membership_id:'member',activity_type:'walking',activity_name:'Caminhada atualizada',activity_date:activity.date,duration_seconds:1800,created_at:activity.createdAt,validation_status:'approved',scoring:{awarded_ev:15,energy_dimension:'physical'}};
+ const merged=mergeActivities([{...activity,status:'failed',error:'Resposta perdida'}],[row]);
+ assert.equal(merged[0].error,undefined);assert.equal(merged.length,1);assert.equal(merged[0].status,'confirmed');assert.equal(merged[0].awardedEv,15);
+ assert.equal(merged[0].operationKey,activity.operationKey);
+ assert.equal(mergeActivities(merged,[row]).length,1);
+ const pending=mergeActivities([], [{...row,validation_status:'pending',scoring:{awarded_ev:null,energy_dimension:null}}]);
+ assert.equal(pending[0].awardedEv,null);assert.equal(pending[0].validationStatus,'pending');
+});

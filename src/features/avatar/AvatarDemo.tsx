@@ -1,3 +1,5 @@
+import { apiEnabled } from '@/api/session';
+import GoalSettings from '../GoalSettings';
 import { useEffect, useState } from 'react';
 import { AccessibilityInfo, StyleSheet, View } from 'react-native';
 import { Button, Card, Copy, Flow } from '@/ui/Flow';
@@ -7,7 +9,7 @@ import type { Motion } from './AvatarScene';
 import { dailyEnergy } from './energy';
 import { useEnergyPreview } from './EnergyPreview';
 
-export default function AvatarDemo() {
+function AvatarPreview() {
   const [motion, setMotion] = useState<Motion>('idle');
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState(1);
@@ -57,3 +59,5 @@ export default function AvatarDemo() {
   </Flow>;
 }
 const styles = StyleSheet.create({ energyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 }, dot: { width: 12, height: 12, borderRadius: 6 }, viewport: { height: 420, overflow: 'hidden', borderRadius: 24, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border } });
+
+export default function AvatarDemo() { return apiEnabled ? <GoalSettings /> : <AvatarPreview />; }

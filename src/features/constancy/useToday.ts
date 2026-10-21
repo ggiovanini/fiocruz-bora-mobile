@@ -1,8 +1,11 @@
+import { apiEnabled } from '@/api/session';
+import { useMock } from '@/mocks/MockProvider';
 import { useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 import { dateKey } from './calendar';
 
 export function useToday() {
+  const { api } = useMock();
   const [today, setToday] = useState(() => dateKey(new Date()));
   useEffect(() => {
     const update = () => setToday(dateKey(new Date()));
@@ -12,5 +15,5 @@ export function useToday() {
     const listener = AppState.addEventListener('change', state => { if (state === 'active') update(); });
     return () => { clearTimeout(timer); listener.remove(); };
   }, [today]);
-  return today;
+  return apiEnabled ? api.data.energy?.today.date ?? today : today;
 }

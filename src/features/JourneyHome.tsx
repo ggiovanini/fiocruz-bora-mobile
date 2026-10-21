@@ -1,10 +1,11 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Svg, { Circle } from 'react-native-svg';
 import { AppHeader } from '@/components/AppHeader';
 import { Icon } from '@/design/Icon';
 import { colors } from '@/design/tokens';
+import { apiEnabled } from '@/api/session';
 import { useMock } from '@/mocks/MockProvider';
 import { useEnergyPreview } from './avatar/EnergyPreview';
 import { dailyEnergy } from './avatar/energy';
@@ -22,27 +23,27 @@ function EnergyRing({ value, label, color, progress }: { value: string; label: s
 }
 export default function JourneyHome() {
   const router = useRouter();
-  const { state, storageError } = useMock();
+  const { state, storageError, api } = useMock();
   const { energy, goal } = useEnergyPreview();
   const daily = dailyEnergy(energy.green, energy.blue, goal);
   const today = useToday();
   const evolution = useLevelPreview();
-  const streak = currentStreak(today, [...previewHistory(today), { date: today, ...energy, goal }]);
+  const streak = apiEnabled ? api.data.energy?.streak_days ?? 0 : currentStreak(today, [...previewHistory(today), { date: today, ...energy, goal }]);
   const pending = state.activities.filter(a => a.status !== 'confirmed').length;
   return <SafeAreaView edges={['top', 'left', 'right']} style={s.safe}>
     <AppHeader />
-    <ScrollView contentContainerStyle={s.body}>
-      <View style={s.greeting}><Text style={s.hello}>Seu ritmo, {state.name.split(' ')[0]}.</Text><View style={s.badge}><View style={s.badgeDot}/><Text style={s.badgeText}>DADOS ILUSTRATIVOS</Text></View></View>
+    <ScrollView refreshControl={apiEnabled ? <RefreshControl refreshing={api.busy} onRefresh={() => { void api.refresh().catch(() => {}); }} tintColor={colors.lime} /> : undefined} contentContainerStyle={s.body}>
+      <View style={s.greeting}><Text style={s.hello}>Seu ritmo, {state.name.split(' ')[0]}.</Text>{!apiEnabled && <View style={s.badge}><View style={s.badgeDot}/><Text style={s.badgeText}>DADOS ILUSTRATIVOS</Text></View>}</View>
       <View style={s.stats}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Meu nível: ${evolution.level} na prévia. Ver evolução.`} style={s.stat} onPress={() => router.push('/levels')}><Text style={s.statNumber}>{evolution.level}</Text><Text style={s.statLabel}>NÍVEL</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Meu nível: ${evolution.level}. Ver evolução.`} style={s.stat} onPress={() => router.push('/levels')}><Text style={s.statNumber}>{evolution.level || '—'}</Text><Text style={s.statLabel}>NÍVEL</Text></Pressable>
         <View style={[s.stat, s.statMiddle]}><View style={s.evNumber}><Icon name="bolt" color={colors.primary} size={21}/><Text style={s.total}>{daily.total}<Text style={s.evUnit}> EV</Text></Text></View><Text style={s.statLabel}>ENERGIA DE HOJE</Text></View>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Minha constância: ${streak} dias na prévia. Ver calendário.`} style={s.stat} onPress={() => router.push('/constancy')}><Text style={s.statNumber}>{streak} <Text style={s.days}>{streak === 1 ? 'dia' : 'dias'}</Text></Text><Text style={s.statLabel}>CONSTÂNCIA</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Minha constância: ${streak} dias. Ver calendário.`} style={s.stat} onPress={() => router.push('/constancy')}><Text style={s.statNumber}>{streak} <Text style={s.days}>{streak === 1 ? 'dia' : 'dias'}</Text></Text><Text style={s.statLabel}>CONSTÂNCIA</Text></Pressable>
       </View>
       <View style={s.hero}>
         <EnergyAvatar greenProgress={daily.greenProgress} blueProgress={daily.blueProgress} motion={daily.complete ? 'celebrate' : 'idle'} height={330}/>
-        <Pressable accessibilityRole="button" accessibilityLabel="Abrir controles do avatar e ajustar meta da prévia" onPress={() => router.push('/avatar-lab')} style={s.avatarLink}><Text style={s.avatarLinkText}>Explorar meu avatar</Text><Icon name="arrow" size={13} color={colors.muted}/></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Abrir controles do avatar e ajustar meta diária" onPress={() => router.push(apiEnabled ? '/goal' : '/avatar-lab')} style={s.avatarLink}><Text style={s.avatarLinkText}>{apiEnabled ? 'Minha meta diária' : 'Explorar meu avatar'}</Text><Icon name="arrow" size={13} color={colors.muted}/></Pressable>
       </View>
-      <View style={s.goalHeader}><Text style={s.sectionTitle}>Uma meta. Muitas possibilidades.</Text><Pressable accessibilityRole="button" accessibilityLabel="Ajustar meta diária na prévia" onPress={() => router.push('/avatar-lab')} hitSlop={8}><Icon name="edit" size={17}/></Pressable></View>
+      <View style={s.goalHeader}><Text style={s.sectionTitle}>Uma meta. Muitas possibilidades.</Text><Pressable accessibilityRole="button" accessibilityLabel="Ajustar meta diária" onPress={() => router.push(apiEnabled ? '/goal' : '/avatar-lab')} hitSlop={8}><Icon name="edit" size={17}/></Pressable></View>
       <Text style={s.goalCopy}>{daily.complete ? 'Meta alcançada.' : `Faltam ${daily.remaining} EV.`} Movimento ou mente: os dois caminhos contam.</Text>
       <View style={s.rings}>
         <EnergyRing label="Física" value={`${energy.green}`} color={colors.lime} progress={energy.green / goal * 100}/>
@@ -56,8 +57,9 @@ export default function JourneyHome() {
         <ActionRow icon="phone" title="Conectar atividades" description="Consulte passos e treinos do seu aparelho" onPress={() => router.push('/health')}/>
         <ActionRow icon="qr" title="Participar de um evento" description="Encontros que também fazem parte da jornada" onPress={() => router.push('/events')}/>
       </View>
-      {(state.offline || storageError) && <Text style={s.goalCopy}>{storageError ? 'Não foi possível salvar neste aparelho.' : 'Sem conexão simulada. Seus registros ficam pendentes.'}</Text>}
-      <Text style={s.footnote}>Prévia visual · EV, meta, nível e histórico de constância ilustrativos. Os registros ainda não geram pontos. Os valores oficiais serão conectados à API.</Text>
+      {(state.offline || storageError) && <Text style={s.goalCopy}>{storageError ? 'Não foi possível salvar neste aparelho.' : 'Sem conexão. Seus registros ficam pendentes.'}</Text>}
+      {!apiEnabled && <Text style={s.footnote}>Dados de exemplo. As atividades ainda não atualizam sua energia.</Text>}
+      {!!api.error && <Pressable accessibilityRole="button" onPress={() => { void api.refresh().catch(() => {}); }}><Text style={s.goalCopy}>{api.error} Toque para tentar novamente.</Text></Pressable>}
     </ScrollView>
   </SafeAreaView>;
 }

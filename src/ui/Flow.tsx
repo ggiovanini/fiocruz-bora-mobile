@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppHeader } from "@/components/AppHeader";
 import { colors } from "@/design/tokens";
+import { apiEnabled } from "@/api/session";
 import { useMock } from "@/mocks/MockProvider";
 export function Flow({
   title,
@@ -19,8 +20,9 @@ export function Flow({
   back = true,
   demo = true,
   scrollRef,
-}: PropsWithChildren<{ title: string; back?: boolean; demo?: boolean; scrollRef?: Ref<ScrollView> }>) {
-  const { state, storageError } = useMock();
+  tag,
+}: PropsWithChildren<{ title: string; back?: boolean; demo?: boolean; tag?: string; scrollRef?: Ref<ScrollView> }>) {
+  const { state, storageError, api } = useMock();
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
       <AppHeader back={back} />
@@ -30,19 +32,20 @@ export function Flow({
         automaticallyAdjustKeyboardInsets
         contentContainerStyle={styles.body}
       >
-        <Text style={styles.tag}>{demo ? "PRÉVIA DO APP" : "DADOS DO APARELHO"}</Text>
+        {tag && <Text style={styles.tag}>{tag}</Text>}
         <Text accessibilityRole="header" style={styles.title}>
           {title}
         </Text>
         {demo && state.offline && (
-          <Notice>Sem conexão simulada · ações ficam pendentes.</Notice>
+          <Notice>Sem conexão. Seus registros ficam pendentes.</Notice>
         )}
         {demo && storageError && (
           <Notice>
             Não foi possível salvar neste aparelho. Mantenha o aplicativo aberto
-            para não perder a demonstração.
+            e tente novamente.
           </Notice>
         )}
+        {apiEnabled && state.session === 'active' && !!api.error && <><Notice>{api.error}</Notice><Button title="Tentar novamente" disabled={api.busy} onPress={() => { void api.refresh().catch(() => {}); }} /></>}
         {children}
       </ScrollView>
     </SafeAreaView>

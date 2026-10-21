@@ -184,7 +184,7 @@ export class HealthSession {
       const access = await this.adapter.requestAccess();
       if (generation !== this.generation) return;
       const connected =
-        access.steps !== "denied" || access.workouts !== "denied";
+        access.workouts !== "denied";
       this.publish({
         connected,
         message: connected
@@ -210,7 +210,6 @@ export class HealthSession {
       const snapshot = await this.adapter.read(lastSevenDays(now));
       if (generation !== this.generation) return;
       if (
-        snapshot.access.steps === "denied" &&
         snapshot.access.workouts === "denied"
       ) {
         this.publish({
@@ -224,7 +223,7 @@ export class HealthSession {
       this.publish({
         snapshot: { ...snapshot, workouts: uniqueWorkouts(snapshot.workouts) },
         message:
-          "Leitura concluída. Dados locais, ainda não enviados à API e sem Energia Vital.",
+          "Leitura concluída. Selecione um treino e autorize seu envio para registrar na jornada.",
       });
     } catch {
       if (generation === this.generation)

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { apiEnabled } from '@/api/session';
+import { useMock } from '@/mocks/MockProvider';
 import { useRouter } from 'expo-router';
 import { Flow, Button } from '@/ui/Flow';
 import { colors } from '@/design/tokens';
@@ -14,7 +16,7 @@ import { previewHistory } from './preview';
 import { useToday } from './useToday';
 
 const weekdayLabels = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
-const statusLabels: Record<DayStatus, string> = { complete: 'Meta alcançada', partial: 'Em progresso', empty: 'Sem EV nesta prévia', future: 'Dia futuro' };
+const statusLabels: Record<DayStatus, string> = { complete: 'Meta alcançada', partial: 'Em progresso', empty: 'Sem EV neste dia', future: 'Dia futuro' };
 function formatDate(date: string) { return localDate(date).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' }); }
 
 function Day({ date, today, status, selected, weekly, onPress }: {
@@ -37,6 +39,8 @@ function Day({ date, today, status, selected, weekly, onPress }: {
 
 export default function Constancy() {
   const router = useRouter();
+  const { api } = useMock();
+  const [loadError, setLoadError] = useState('');
   const today = useToday();
   const [selected, setSelected] = useState(today);
   const [month, setMonth] = useState(today.slice(0, 7));
@@ -52,9 +56,15 @@ export default function Constancy() {
       previousToday.current = today;
     }
   }, [today]);
-  const records = [...previewHistory(today), { date: today, ...energy, goal }];
+  useEffect(() => {
+    if (!apiEnabled) return;
+    setLoadError('');
+    void api.loadEnergyMonth(month).catch(error => setLoadError(error instanceof Error ? error.message : 'Não foi possível carregar o mês.'));
+  }, [month]);
+  const records = apiEnabled ? (api.data.energy?.days ?? []).map(day => ({ date: day.date, green: day.physical_ev, blue: day.intellectual_ev, goal: day.goal_ev }))
+    : [...previewHistory(today), { date: today, ...energy, goal }];
   const byDate = new Map(records.map(day => [day.date, day]));
-  const streak = currentStreak(today, records);
+  const streak = apiEnabled ? api.data.energy?.streak_days ?? 0 : currentStreak(today, records);
   const week = Array.from({ length: 7 }, (_, index) => shiftDay(today, index - 6));
   const cells = monthCells(month);
   const record = byDate.get(selected);
@@ -69,7 +79,8 @@ export default function Constancy() {
   }
   return <Flow title="Minha constância" scrollRef={scroll}>
     <Text style={s.intro}>Um dia de cada vez. Cada combinação de movimento e mente faz parte da sua jornada.</Text>
-    <Text style={s.previewTag}>HISTÓRICO ILUSTRATIVO</Text>
+    {!apiEnabled && <Text style={s.previewTag}>HISTÓRICO ILUSTRATIVO</Text>}
+    {!!loadError && <><Text style={s.support}>{loadError}</Text><Button title="Tentar novamente" onPress={() => { void api.loadEnergyMonth(month).then(() => setLoadError('')).catch(() => {}); }} /></>}
     <View style={s.streakCard}>
       <View style={s.cardTop}><View style={s.iconBadge}><Icon name="leaf" color={colors.lime} size={24} /></View><Text style={s.eyebrow}>SEU RITMO, SUA JORNADA</Text></View>
       <Text style={s.streakValue}>{streak}<Text style={s.streakUnit}> {streak === 1 ? 'dia' : 'dias'}</Text></Text>
@@ -104,9 +115,9 @@ export default function Constancy() {
         <View style={s.energyRow}><View style={s.energyItem}><Icon name="activity" color={colors.lime} size={20} /><Text style={s.energyText}>{record.green} EV · física</Text></View><View style={s.energyItem}><Icon name="book" color={colors.primary} size={20} /><Text style={s.energyText}>{record.blue} EV · mental</Text></View></View>
         <Text style={s.support}>{daily.complete ? 'Meta do dia alcançada. As duas cores somam para o mesmo objetivo.' : selected === today ? `Faltam ${daily.remaining} EV. Qualquer uma das duas energias pode completar sua meta.` : 'Cada contribuição faz parte da jornada, mesmo nos dias em que a meta não foi alcançada.'}</Text>
         {selected === today && <Button title="Adicionar atividade" onPress={() => router.push('/activity')} />}
-      </> : <><Text style={s.emptyTitle}>Sem histórico de EV neste dia</Text><Text style={s.support}>Não há dados para esta data na prévia.</Text></>}
+      </> : <><Text style={s.emptyTitle}>Sem histórico de EV neste dia</Text><Text style={s.support}>Não há registros para esta data.</Text></>}
     </View>
-    <Text style={s.footnote}>Prévia com histórico ilustrativo. O EV de hoje acompanha a home; registros de atividades ainda não geram energia. Metas passadas são exemplos de 100 EV. O histórico oficial será conectado à API.</Text>
+    {!apiEnabled && <Text style={s.footnote}>Histórico com dados de exemplo.</Text>}
   </Flow>;
 }
 

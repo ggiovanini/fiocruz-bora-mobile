@@ -1,3 +1,5 @@
+import { apiEnabled } from '@/api/session';
+import { useMock } from '@/mocks/MockProvider';
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
@@ -23,7 +25,7 @@ function LevelBadge({ level, progress }: { level: number; progress: number }) {
   </View>;
 }
 
-export default function Levels() {
+function PreviewLevels() {
   const router = useRouter();
   const current = useLevelPreview();
   const scroll = useRef<ScrollView>(null);
@@ -113,3 +115,29 @@ const s = StyleSheet.create({
   levelRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 }, levelDot: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: '#34667B', alignItems: 'center', justifyContent: 'center' }, levelDotActive: { backgroundColor: colors.lime, borderColor: colors.lime }, levelDotNumber: { color: colors.muted, fontFamily: 'Montserrat_600SemiBold', fontSize: 15 }, levelText: { flex: 1, gap: 5 }, levelName: { color: colors.text, fontFamily: 'Montserrat_600SemiBold', fontSize: 14 }, levelAmount: { color: colors.muted, fontFamily: 'Montserrat_400Regular', fontSize: 11, lineHeight: 17 }, currentTag: { color: colors.lime, fontFamily: 'Montserrat_600SemiBold', fontSize: 8, letterSpacing: 1 }, caption: { color: colors.muted, fontFamily: 'Montserrat_400Regular', fontSize: 10, lineHeight: 17 },
   simulation: { borderWidth: 1, borderColor: '#235E76' }, inputLabel: { fontFamily: 'Montserrat_500Medium', fontSize: 12, color: colors.text }, chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, restSwitch: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 6 }, restText: { flex: 1, gap: 5 }, restTitle: { fontFamily: 'Montserrat_500Medium', color: colors.text, fontSize: 12 }, switchTrack: { width: 42, height: 25, borderRadius: 14, padding: 3, backgroundColor: '#2A5268', alignItems: 'flex-start' }, switchOn: { backgroundColor: '#316B39' }, switchThumb: { width: 19, height: 19, borderRadius: 10, backgroundColor: '#9EBCCA' }, thumbOn: { backgroundColor: colors.lime, alignSelf: 'flex-end' }, outcome: { borderRadius: 18, padding: 16, gap: 13, backgroundColor: colors.background }, outcomeTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }, outcomeLevel: { fontFamily: 'Montserrat_600SemiBold', color: colors.text, fontSize: 21 }, outcomeValue: { fontFamily: 'Montserrat_600SemiBold', color: colors.lime, fontSize: 17 }, equation: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, equationText: { color: colors.muted, fontFamily: 'Montserrat_500Medium', fontSize: 10 }, loss: { color: '#FFCD8E', fontFamily: 'Montserrat_500Medium', fontSize: 10 }, gain: { color: colors.lime, fontFamily: 'Montserrat_500Medium', fontSize: 10 }, resultNote: { fontFamily: 'Montserrat_600SemiBold', color: colors.text, fontSize: 12, lineHeight: 19 }, energyButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, energyButton: { minHeight: 48, flexGrow: 1, borderWidth: 1, borderColor: '#31667C', borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 12, gap: 8 }, energyButtonText: { fontFamily: 'Montserrat_500Medium', color: colors.text, fontSize: 11 }, footnote: { color: colors.muted, fontFamily: 'Montserrat_400Regular', fontSize: 10, lineHeight: 17 },
 });
+
+function ConnectedLevels() {
+  const router = useRouter();
+  const { api } = useMock();
+  const summary = api.data.energy;
+  const level = summary?.vitality.level;
+  return <Flow title="Meu nível">
+    <Text style={s.intro}>Seus EV registram suas conquistas. Sua Vitalidade acompanha seu ritmo e determina seu nível.</Text>
+    {summary && <View style={s.hero}>
+      {level ? <><LevelBadge level={level.number} progress={level.progress_percent} /><Text style={s.heroTitle}>{level.name}</Text></> : <Text style={s.body}>Os níveis ainda não foram configurados.</Text>}
+      <View style={s.balanceRow}>
+        <View style={s.balance}><Text style={s.reserveLabel}>EV ACUMULADOS</Text><Text style={s.balanceValue}>{format(summary.lifetime_earned_ev)} EV</Text></View>
+        <View style={s.balance}><Text style={s.reserveLabel}>VITALIDADE</Text><Text style={s.balanceValue}>{format(summary.vitality.points)} PV</Text></View>
+      </View>
+      {level?.next ? <><Text style={s.remaining}>Faltam {format(level.remaining_pv)} PV para {level.next.name}.</Text><Text style={s.rangeText}>Próximo nível a partir de {format(level.next.minimum_pv)} PV</Text></> : level && <Text style={s.remaining}>Você está no maior nível disponível.</Text>}
+    </View>}
+    {summary && <View style={s.card}>
+      <Text style={s.sectionTitle}>Seu ritmo, sua jornada</Text>
+      <Text style={s.body}>Cada EV conquistado também soma 1 PV de Vitalidade. Seus EV acumulados são preservados.</Text>
+      <Text style={s.body}>Após sete dias completos sem atividades, o desgaste diário corresponde a {summary.vitality.daily_decay_percent}% da meta vigente. Para a meta atual, são {summary.vitality.daily_decay_pv} PV por dia.</Text>
+      <Text style={s.body}>Uma atividade registrada reinicia a contagem de inatividade. A Vitalidade nunca fica abaixo de zero.</Text>
+    </View>}
+    <Button title="Registrar atividade" onPress={() => router.push('/activity')} />
+  </Flow>;
+}
+export default function Levels() { return apiEnabled ? <ConnectedLevels /> : <PreviewLevels />; }
