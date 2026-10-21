@@ -1,0 +1,23 @@
+Bóra é uma jornada de bem-estar que aproxima movimento e mente, com foco em pequenos passos e constância.
+
+Este piloto pelo TestFlight permite experimentar a proposta do aplicativo e ajudar a melhorar sua experiência.
+
+EXPLORE O PILOTO
+• Registre atividades por conta própria, escolhendo uma sugestão ou informando um nome, tempo e data.
+• Revise seus registros e consulte o histórico da demonstração.
+• Conheça o personagem 3D e experimente as contribuições de energia física, verde, e intelectual, azul.
+• Explore a meta diária de Energia Vital (EV), formada pela soma das duas energias, sem cota obrigatória por cor.
+• Consulte o calendário de constância e os detalhes de cada dia da prévia.
+• Entenda a diferença entre EV acumulados, preservados no histórico, e Vitalidade (PV), usada para representar o nível.
+• No iPhone compatível, experimente a consulta opcional de passos e treinos do app Saúde, mediante autorização.
+
+IMPORTANTE SOBRE ESTA VERSÃO
+A entrada institucional é simulada e não solicita conta ou senha real. EV, Vitalidade, níveis, metas e histórico de constância são exemplos de demonstração; registrar uma atividade ainda não concede pontos oficiais. Rankings, eventos e parte dos conteúdos também são demonstrativos.
+
+A consulta ao Saúde é opcional e separada dos exemplos de pontuação. Não é necessário autorizar essa conexão para testar os demais fluxos. O aplicativo não escreve dados no Saúde.
+
+Este piloto está em desenvolvimento. Envie comentários pelo TestFlight ou para suporte@nibilabs.com, indicando a tela e os passos para reproduzir o problema. Evite incluir dados pessoais ou de saúde nas capturas enviadas.
+
+Suporte: https://www.nibilabs.com/solicitacao-de-exclusao-de-dados/
+Privacidade: https://www.nibilabs.com/politica-de-privacidade
+© 2026 Nibilabs
