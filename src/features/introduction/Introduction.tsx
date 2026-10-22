@@ -1,3 +1,4 @@
+import { Brand } from '@/components/Brand';
 import { useEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo, ActivityIndicator, BackHandler, Image, Pressable,
@@ -89,7 +90,7 @@ export default function Introduction({ onFinish, finishLabel = 'Bóra começar' 
     </Svg>
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
-        <View style={s.brand} accessible accessibilityLabel="Bóra"><Image source={require('../../../assets/imgs/Logo.png')} style={s.logo} /><Image source={require('../../../assets/imgs/Tipo.png')} style={s.wordmark} /></View>
+        <Brand />
         {step < 2 ? <Pressable accessibilityRole="button" accessibilityLabel="Pular apresentação" disabled={saving} onPress={() => void finish()} style={s.skip}><Text style={s.skipText}>Pular</Text></Pressable> : <Text style={s.stepCount}>03 / 03</Text>}
       </View>
       <ScrollView ref={scroll} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
@@ -129,7 +130,6 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background }, background: { width: '100%', height: '100%' }, backgroundDim: { opacity: 0.14 },
   safe: { flex: 1, width: '100%', maxWidth: 560, alignSelf: 'center' },
   header: { paddingHorizontal: 28, paddingTop: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 64 },
-  brand: { flexDirection: 'row', gap: 5, alignItems: 'center' }, logo: { width: 30, height: 34, resizeMode: 'contain' }, wordmark: { width: 76, height: 29, resizeMode: 'contain', tintColor: colors.text },
   skip: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'flex-end' }, skipText: { color: '#C2D5DF', fontFamily: 'Montserrat_500Medium', fontSize: 14 }, stepCount: { color: colors.muted, fontFamily: 'Montserrat_500Medium', fontSize: 12 },
   scroll: { flexGrow: 1, paddingHorizontal: 28 }, hero: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 12 },
   copy: { paddingTop: 12, paddingBottom: 14 }, eyebrow: { color: colors.lime, fontSize: 10, letterSpacing: 1.6, fontFamily: 'Montserrat_700Bold', marginBottom: 14 },

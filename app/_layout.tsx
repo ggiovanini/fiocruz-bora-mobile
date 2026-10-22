@@ -66,6 +66,7 @@ function Navigation() {
       <Stack.Screen name="index" />
       <Stack.Screen name="presentation" />
       <Stack.Screen name="legal" />
+      <Stack.Screen name="about" />
       <Stack.Protected guard={!hasAccess(state)}>
         <Stack.Screen name="onboarding" />
       </Stack.Protected>

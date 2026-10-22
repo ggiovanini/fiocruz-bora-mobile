@@ -60,6 +60,7 @@ export function Profile() {
         title="Rever apresentação inicial"
         onPress={() => router.push("/presentation")}
       />
+      <Button secondary title="Sobre o Bóra" onPress={() => router.push("/about")} />
       <Button
         secondary
         title="Ajuda e suporte"

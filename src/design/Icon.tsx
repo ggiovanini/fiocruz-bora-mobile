@@ -1,6 +1,7 @@
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
-export type IconName = 'home' | 'target' | 'trophy' | 'user' | 'plus' | 'arrow' | 'back' | 'menu' | 'bolt' | 'book' | 'activity' | 'phone' | 'qr' | 'edit' | 'clock' | 'search' | 'check' | 'pause' | 'play' | 'leaf';
+export type IconName = 'home' | 'target' | 'trophy' | 'user' | 'plus' | 'arrow' | 'back' | 'menu' | 'bolt' | 'book' | 'activity' | 'phone' | 'qr' | 'edit' | 'clock' | 'search' | 'check' | 'pause' | 'play' | 'leaf' | 'bell';
 const paths: Partial<Record<IconName, string>> = {
+  bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21a2 2 0 0 0 4 0',
   home: 'M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z',
   target: 'M12 8a4 4 0 1 0 4 4M12 3a9 9 0 1 0 9 9M12 12l8-8m-4 0h4v4',
   trophy: 'M7 3h10v6a5 5 0 0 1-10 0V3Zm0 2H3v3a4 4 0 0 0 4 4m10-7h4v3a4 4 0 0 1-4 4m-5 2v6m-4 1h8',
