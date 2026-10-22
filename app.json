@@ -68,7 +68,20 @@
           "barcodeScannerEnabled": true
         }
       ],
-      "./plugins/with-testflight-api"
+      "./plugins/with-testflight-api",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#002542",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#002542",
+            "image": "./assets/splash-icon.png"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

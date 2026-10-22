@@ -24,3 +24,13 @@ A abertura da apresentação não confirma acesso à API, navegação completa, 
 A mudança de pacote cria uma instalação distinta e não migra dados locais do pacote antigo. O Xcode não foi regenerado. A configuração de assinatura Release Android ainda usa a chave de desenvolvimento do template e precisa ser preparada antes da distribuição.
 
 Comandos e detalhes em [build Android](build-android.md).
+
+## Ícone adaptativo e splash — atualização de 22/10/2026
+
+- Foreground e versão monocromática regenerados a partir de assets/imgs/Icon.svg, com o B e o castelo completos. Pixels visíveis do foreground limitados a raio 298,9 px em uma camada 1024 px; o círculo seguro do Android permite 312,9 px.
+- Ícone redondo conferido visualmente no launcher do Pixel 8 / Android 15, sem recortes do símbolo.
+- Splash configurada via expo-splash-screen: fundo #002542, símbolo centralizado, variantes clara/escura iguais. Liberação após fontes e preferências locais da apresentação; restauração da conexão com a API continua usando o indicador de carregamento da interface.
+- 79 testes e TypeScript aprovados. Builds Debug e Release arm64 concluídos.
+- APK Release local instalado e aberto pelo launcher: splash capturada com o símbolo completo e transição para a tela de acesso confirmada. Nenhuma falha AndroidRuntime registrada nessa abertura.
+- APK Debug reinstalado após a conferência, para continuar o desenvolvimento com Metro e API HTTP local.
+- Apenas Android foi regenerado. A configuração da splash está em app.json; o projeto iOS não foi regenerado nesta rodada.

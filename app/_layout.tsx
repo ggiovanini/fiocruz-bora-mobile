@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
 import { NotificationProvider } from '@/notifications/NotificationProvider';
 import { wrapTelemetryRoot } from "@/telemetry/telemetry";
 import { Stack } from "expo-router";
@@ -16,6 +18,8 @@ import { EnergyPreviewProvider } from "@/features/avatar/EnergyPreview";
 import { HealthProvider } from "@/health/HealthProvider";
 import Introduction from "@/features/introduction/Introduction";
 import { useIntroduction } from "@/features/introduction/useIntroduction";
+
+void SplashScreen.preventAutoHideAsync();
 
 function HealthBoundary() {
   const { state, ready } = useMock();
@@ -39,6 +43,9 @@ function Navigation() {
     Montserrat_600SemiBold,
     Montserrat_700Bold,
   });
+  useEffect(() => {
+    if (introduction.ready && (fontsLoaded || fontError)) void SplashScreen.hideAsync();
+  }, [introduction.ready, fontsLoaded, fontError]);
   if (!ready || !introduction.ready || (!fontsLoaded && !fontError))
     return (
       <View

@@ -20,6 +20,7 @@
     "expo-notifications": "~57.0.20",
     "expo-observe": "~57.0.23",
     "expo-router": "~57.0.22",
+    "expo-splash-screen": "~57.0.10",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.4",
     "react": "19.2.3",
@@ -35,6 +36,7 @@
     "three": "^0.186.1"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/react": "~19.2.2",
     "typescript": "~6.0.3"
   },
@@ -47,7 +49,8 @@
     "lint": "npm run typecheck",
     "test": "npm run typecheck && npm run test:flows",
     "test:flows": "node --test tests/*.test.cjs",
-    "postinstall": "node scripts/patch-expo-jsi.cjs && node scripts/patch-react-native-core.cjs"
+    "postinstall": "node scripts/patch-expo-jsi.cjs && node scripts/patch-react-native-core.cjs",
+    "assets:android": "node scripts/generate-android-brand.cjs"
   },
   "private": true,
   "expo": {
