@@ -1,5 +1,5 @@
 import { NotificationProvider } from '@/notifications/NotificationProvider';
-import { ObserveRoot } from "expo-observe";
+import { wrapTelemetryRoot } from "@/telemetry/telemetry";
 import { Stack } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useFonts } from "expo-font";
@@ -9,7 +9,6 @@ import {
   Montserrat_600SemiBold,
   Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
-import "@/telemetry/telemetry";
 import { colors } from "@/design/tokens";
 import { hasAccess, MockProvider, useMock } from "@/mocks/MockProvider";
 
@@ -113,4 +112,4 @@ function RootLayout() {
     </MockProvider>
   );
 }
-export default ObserveRoot.wrap(RootLayout);
+export default wrapTelemetryRoot(RootLayout);

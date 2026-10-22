@@ -56,6 +56,7 @@
           "background": false
         }
       ],
+      "./plugins/with-android-dev-support",
       "./plugins/with-health-rationale",
       "react-native-health-connect",
       "expo-asset",

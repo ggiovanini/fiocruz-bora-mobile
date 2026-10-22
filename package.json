@@ -49,5 +49,14 @@
     "test:flows": "node --test tests/*.test.cjs",
     "postinstall": "node scripts/patch-expo-jsi.cjs && node scripts/patch-react-native-core.cjs"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "autolinking": {
+      "android": {
+        "exclude": [
+          "expo-observe"
+        ]
+      }
+    }
+  }
 }

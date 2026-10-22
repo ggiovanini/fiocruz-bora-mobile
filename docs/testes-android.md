@@ -1,19 +1,26 @@
-# Verificação inicial Android — 22/10/2026
+# Verificação Android — 22/10/2026
 
-## Resultados
+## Estado atual
 
-- Node 20.19.4: verificação TypeScript e 73 testes aprovados.
-- Exportação do bundle Android concluída.
+- Pacote Android alinhado com app.json: `br.fiocruz.mobile.bora`.
+- Versão 1.0.1 e versionCode 154; ícones, cores e permissão de câmera reaplicados pelo prebuild.
+- Classes Kotlin movidas para o pacote atual; explicação nativa do Health Connect atualizada no plugin e na classe gerada.
+- Node 20.19.4: TypeScript e 77 testes aprovados.
 - JDK 17, SDK 36, arquitetura arm64-v8a: assembleDebug concluído.
 - APK instalado no emulador Pixel 8 / Android 15.
-- A abertura ainda falha com `Unable to load script`. Metro foi iniciado na porta 8081 e o redirecionamento adb foi aplicado, mas não houve solicitação do bundle registrada pelo servidor. Isso impede validar os fluxos da interface nesta rodada. Investigar a conexão/configuração de desenvolvimento antes de atribuir a falha ao bundle de distribuição.
+- Apresentação inicial confirmada pela interface acessível: marca Bóra/Fiocruz, texto Corpo e mente em movimento, tela 1 de 3 e botão Continuar.
+- Registro ReactNativeJS confirmou a inicialização de main com Fabric, sem falha de inicialização nessa abertura.
 
-## Ajustes identificados
+## Bloqueios encontrados e resolvidos
 
-- O projeto nativo usa applicationId/namespace `br.fiocruz.boramobile`, enquanto app.json define `br.fiocruz.mobile.bora`. Conciliar antes da distribuição; a troca do identificador altera a identidade da instalação.
-- versionName nativo é 1.0.0; app.json e package.json usam 1.0.1. versionCode está em 154.
-- A explicação nativa do Health Connect e o plugin que a gera ainda descrevem passos e ausência de envio à API. O fluxo atual solicita apenas treinos e oferece importação explícita à API; atualizar os dois textos em conjunto.
+1. O projeto nativo conservava o pacote antigo `br.fiocruz.boramobile` e versionName 1.0.0. O prebuild Android regenerou as configurações a partir de app.json e plugins.
+2. A abertura inicial mostrava `Unable to load script`. A configuração de suporte ao desenvolvimento agora usa explicitamente a variante do app, preservada pelo plugin with-android-dev-support. O Metro precisava escutar no localhost IPv4 para funcionar com o redirecionamento adb; com isso, o bundle foi carregado.
+3. O bundle revelou falha nativa em expo-observe por falta de extra.eas.projectId. O módulo opcional foi excluído do autolinking Android e o carregamento JS foi condicionado à plataforma/configuração. A telemetria Android permanece desativada. Os testes cobrem ausência de configuração, exclusão Android e o controle de consentimento para plataformas configuradas.
 
-## Próxima rodada
+## Limites e próxima rodada
 
-Resolver a abertura no emulador; validar apresentação, acesso, navegação e avatar; testar QR/câmera e notificações. Em aparelho com fonte de treinos conhecida, validar concessão/negação/revogação de acesso ao Health Connect, seleção e importação, repetição e modo offline. Os resultados acima não confirmam esses fluxos nem leitura de dados reais.
+A abertura da apresentação não confirma acesso à API, navegação completa, avatar, QR/câmera ou notificações. Esses fluxos continuam pendentes. Em aparelho com fonte de treinos conhecida, validar concessão/negação/revogação de acesso ao Health Connect, seleção e importação, repetição e modo offline. Não houve leitura de dados reais de saúde nesta rodada.
+
+A mudança de pacote cria uma instalação distinta e não migra dados locais do pacote antigo. O Xcode não foi regenerado. A configuração de assinatura Release Android ainda usa a chave de desenvolvimento do template e precisa ser preparada antes da distribuição.
+
+Comandos e detalhes em [build Android](build-android.md).

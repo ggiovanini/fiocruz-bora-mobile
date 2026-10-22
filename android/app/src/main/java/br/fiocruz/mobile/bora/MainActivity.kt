@@ -1,4 +1,4 @@
-package br.fiocruz.boramobile
+package br.fiocruz.mobile.bora
 
 import android.os.Build
 import android.os.Bundle

@@ -1,4 +1,4 @@
-package br.fiocruz.boramobile
+package br.fiocruz.mobile.bora
 
 import android.app.Application
 import android.content.res.Configuration
@@ -18,6 +18,7 @@ class MainApplication : Application(), ReactApplication {
 
   override val reactHost: ReactHost by lazy {
     ExpoReactHostFactory.getDefaultReactHost(
+      useDevSupport = BuildConfig.DEBUG,
       context = applicationContext,
       packageList =
         PackageList(this).packages.apply {
