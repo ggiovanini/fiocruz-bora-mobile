@@ -7,7 +7,7 @@ const key='bora:temporary-api-session:v1';
 function setup(t){
  const storage=new Map([[key,JSON.stringify({token:'old-token'})]]);
  const file=new Module('session');
- file.require=name=>{if(name==='@react-native-async-storage/async-storage')return {getItem:async k=>storage.get(k)??null,setItem:async(k,v)=>storage.set(k,v),removeItem:async k=>storage.delete(k)};throw new Error(name)};
+ file.require=name=>{if(name==='./config')return {getApiBaseUrl:()=>process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/,'')??''};if(name==='@react-native-async-storage/async-storage')return {getItem:async k=>storage.get(k)??null,setItem:async(k,v)=>storage.set(k,v),removeItem:async k=>storage.delete(k)};throw new Error(name)};
  const previous=process.env.EXPO_PUBLIC_API_URL;process.env.EXPO_PUBLIC_API_URL='https://bora.example/api/v1';
  t.after(()=>{if(previous===undefined)delete process.env.EXPO_PUBLIC_API_URL;else process.env.EXPO_PUBLIC_API_URL=previous;});
  file._compile(ts.transpileModule(readFileSync('src/api/session.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,esModuleInterop:true}}).outputText,'session.cjs');

@@ -81,11 +81,11 @@ class HealthPermissionsActivity : Activity() {
       text = """
         Bóra — uso dos dados de atividade
 
-        Este teste consulta passos diários e treinos dos últimos sete dias no Health Connect, após sua autorização. A atualização automática ocorre ao abrir ou voltar ao aplicativo quando a última tentativa tiver pelo menos cinco minutos, e a cada cinco minutos durante o uso. Você pode desativá-la e usar Atualizar agora.
+        O Bóra consulta treinos dos últimos sete dias no Health Connect, após sua autorização. A atualização automática ocorre ao abrir ou voltar ao aplicativo quando a última tentativa tiver pelo menos cinco minutos, e a cada cinco minutos durante o uso. Você pode desativá-la e usar Atualizar agora.
 
-        Para treinos, são exibidos tipo, início, fim, duração e aplicativo de origem. Você pode permitir passos, treinos, ambos ou nenhum deles.
+        Para treinos, são exibidos tipo, início, fim, duração e aplicativo de origem. Você pode permitir ou negar o acesso aos treinos. Passos não são consultados.
 
-        Os resultados ficam apenas na memória durante a sessão. Não são enviados à API, gravados em armazenamento permanente pelo Bóra, usados para publicidade ou para calcular Energia Vital. Apenas as preferências de conexão e atualização são salvas no aparelho.
+        A consulta fica apenas na memória durante a sessão e não gera Energia Vital automaticamente. Para registrar um treino na jornada, você precisa selecioná-lo, escolher uma atividade do catálogo e confirmar a importação. Com sessão ativa, vínculo e consentimento de registro de atividades, essa ação envia à API o identificador de origem, tipo, início, fim e duração do treino para validação e cálculo de Energia Vital. Apenas as preferências de conexão e atualização são salvas localmente. Os dados não são usados para publicidade.
 
         Não há leitura em segundo plano, localização, dados cardíacos ou gravação de dados no Health Connect. O registro manual continua disponível.
 

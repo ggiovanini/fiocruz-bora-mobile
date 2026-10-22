@@ -1,9 +1,19 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Group, Mesh } from 'three';
+import {progressArcs} from './progressArc';
 export type Motion = 'idle' | 'walk' | 'celebrate';
 export type SceneProps = { motion: Motion; playing: boolean; speed: number; greenProgress: number; blueProgress: number };
-export type ViewportProps = SceneProps & { rendering?: boolean };
+export type ViewportProps = SceneProps & { rendering?: boolean; zoom?: number };
+
+function ProgressArc({start, sweep, color, depth = 0}: {start: number; sweep: number; color: string; depth?: number}) {
+  if (sweep <= 0) return null;
+  const radius = 2.05, thickness = .075;
+  return <group position={[0, 0, depth]}>
+    <mesh rotation={[0, 0, start]}><torusGeometry args={[radius, thickness, 12, 128, sweep]} /><meshBasicMaterial color={color} /></mesh>
+    {[start, start + sweep].map((angle, index) => <mesh key={index} position={[radius * Math.cos(angle), radius * Math.sin(angle), 0]}><sphereGeometry args={[thickness, 16, 12]} /><meshBasicMaterial color={color} /></mesh>)}
+  </group>;
+}
 
 function Limb({ x, leg = false, side, motion, time }: { x: number; leg?: boolean; side: number; motion: Motion; time: React.MutableRefObject<number> }) {
   const pivot = useRef<Group>(null);
@@ -20,6 +30,7 @@ function Limb({ x, leg = false, side, motion, time }: { x: number; leg?: boolean
 }
 
 export function AvatarScene({ motion, playing, speed, greenProgress, blueProgress }: SceneProps) {
+  const arcs = progressArcs(greenProgress, blueProgress);
   const body = useRef<Group>(null);
   const time = useRef(0);
   const base = useRef<Mesh>(null);
@@ -35,10 +46,10 @@ export function AvatarScene({ motion, playing, speed, greenProgress, blueProgres
   return <>
     <ambientLight intensity={1.8} /><directionalLight position={[3, 5, 5]} intensity={2.5} color="#c9faff" />
     <pointLight position={[-3, 1, 2]} intensity={12} color="#0a9ff5" />
-    <group position={[0, .25, -.6]} rotation={[0, 0, -Math.PI * .25]}>
-      <mesh><torusGeometry args={[2.05, .035, 8, 100, Math.PI * 1.5]} /><meshBasicMaterial color="#23536b" /></mesh>
-      {greenProgress > 0 && <mesh position={[0, 0, .015]}><torusGeometry args={[2.05, .05, 8, 100, Math.PI * 1.5 * greenProgress / 100]} /><meshBasicMaterial color="#79ff00" /></mesh>}
-      {blueProgress > 0 && <mesh position={[0, 0, .015]} rotation={[0, 0, Math.PI * 1.5 * greenProgress / 100]}><torusGeometry args={[2.05, .05, 8, 100, Math.PI * 1.5 * blueProgress / 100]} /><meshBasicMaterial color="#0a9ff5" /></mesh>}
+    <group position={[0, .25, -.6]}>
+      <ProgressArc {...arcs.track} color="#23536b" />
+      <ProgressArc {...arcs.physical} color="#79ff00" depth={.02} />
+      <ProgressArc {...arcs.mental} color="#0a9ff5" depth={.025} />
     </group>
     <group ref={body}>
       <mesh position={[0, .25, 0]} scale={[.42, .78, .25]}><sphereGeometry args={[1, 24, 24]} /><meshStandardMaterial color="#58e52d" roughness={.45} /></mesh>

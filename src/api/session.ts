@@ -1,8 +1,9 @@
+import { getApiBaseUrl } from './config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // TEMPORARY test access. Replace with institutional authentication.
-export const apiEnabled = !!process.env.EXPO_PUBLIC_API_URL;
-const base = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/$/, '');
+const base = getApiBaseUrl();
+export const apiEnabled = !!base;
 const key = 'bora:temporary-api-session:v1';
 type User = { id: string; display_name: string };
 type Session = { token: string; user: User; expires_at: string };

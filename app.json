@@ -11,14 +11,14 @@
       "supportsTablet": true,
       "bundleIdentifier": "br.fiocruz.mobile.bora",
       "icon": "./assets/app-store/bora-icon-1024.png",
-      "buildNumber": "4",
+      "buildNumber": "154",
       "infoPlist": {
         "NSCameraUsageDescription": "O Bóra usa a câmera para ler o QR Code dos eventos e confirmar sua presença."
       }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#002542",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -27,7 +27,8 @@
       "package": "br.fiocruz.mobile.bora",
       "permissions": [
         "android.permission.health.READ_EXERCISE"
-      ]
+      ],
+      "versionCode": 154
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -55,6 +56,7 @@
           "background": false
         }
       ],
+      "./plugins/with-android-dev-support",
       "./plugins/with-health-rationale",
       "react-native-health-connect",
       "expo-asset",
@@ -66,7 +68,20 @@
           "barcodeScannerEnabled": true
         }
       ],
-      "./plugins/with-testflight-api"
+      "./plugins/with-testflight-api",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#002542",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#002542",
+            "image": "./assets/splash-icon.png"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
 import { NotificationProvider } from '@/notifications/NotificationProvider';
-import { ObserveRoot } from "expo-observe";
+import { wrapTelemetryRoot } from "@/telemetry/telemetry";
 import { Stack } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 import { useFonts } from "expo-font";
@@ -9,7 +11,6 @@ import {
   Montserrat_600SemiBold,
   Montserrat_700Bold,
 } from "@expo-google-fonts/montserrat";
-import "@/telemetry/telemetry";
 import { colors } from "@/design/tokens";
 import { hasAccess, MockProvider, useMock } from "@/mocks/MockProvider";
 
@@ -17,6 +18,8 @@ import { EnergyPreviewProvider } from "@/features/avatar/EnergyPreview";
 import { HealthProvider } from "@/health/HealthProvider";
 import Introduction from "@/features/introduction/Introduction";
 import { useIntroduction } from "@/features/introduction/useIntroduction";
+
+void SplashScreen.preventAutoHideAsync();
 
 function HealthBoundary() {
   const { state, ready } = useMock();
@@ -40,6 +43,9 @@ function Navigation() {
     Montserrat_600SemiBold,
     Montserrat_700Bold,
   });
+  useEffect(() => {
+    if (introduction.ready && (fontsLoaded || fontError)) void SplashScreen.hideAsync();
+  }, [introduction.ready, fontsLoaded, fontError]);
   if (!ready || !introduction.ready || (!fontsLoaded && !fontError))
     return (
       <View
@@ -66,6 +72,7 @@ function Navigation() {
       <Stack.Screen name="index" />
       <Stack.Screen name="presentation" />
       <Stack.Screen name="legal" />
+      <Stack.Screen name="about" />
       <Stack.Protected guard={!hasAccess(state)}>
         <Stack.Screen name="onboarding" />
       </Stack.Protected>
@@ -112,4 +119,4 @@ function RootLayout() {
     </MockProvider>
   );
 }
-export default ObserveRoot.wrap(RootLayout);
+export default wrapTelemetryRoot(RootLayout);

@@ -2,6 +2,21 @@
 
 Implementada em 20/10/2026. Defina `EXPO_PUBLIC_API_URL` com a URL acessível pelo aparelho, incluindo `/api/v1`. O acesso temporário por perfis de demonstração permanece nesta fase. Os demais dados dos recursos conectados são retornados pela API.
 
+## API local no emulador Android
+
+O `.env` pode manter endereços separados, sem alterar o iOS:
+
+```dotenv
+EXPO_PUBLIC_API_URL=http://localhost:8000/api/v1
+EXPO_PUBLIC_ANDROID_API_URL=http://10.0.2.2:8000/api/v1
+```
+
+O Android usa a variável específica quando preenchida; iOS e web usam a variável comum. Sem a variável Android, todas as plataformas usam a comum. A mesma seleção se aplica aos documentos públicos e às requisições autenticadas.
+
+`10.0.2.2` é o acesso ao computador pelo emulador do Android Studio; não é o endereço de um aparelho físico. O servidor Laravel pode continuar em `127.0.0.1:8000`. O build Debug já declara INTERNET e permite HTTP. Não é necessário um novo prebuild para mudar apenas esses endereços: reinicie o Metro e recarregue o app.
+
+Para homologação/distribuição, use endereços HTTPS acessíveis pelo aparelho e remova a configuração local específica do Android do ambiente de build.
+
 ## Recursos conectados
 
 - Perfil: consulta do nome e contatos; edição do nome via `PATCH /me`.
