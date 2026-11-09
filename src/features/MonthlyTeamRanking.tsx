@@ -19,7 +19,7 @@ export default function MonthlyTeamRanking() {
     <Button secondary title="Conhecer e participar de equipes" onPress={() => router.push('/teams')}/>
     <View style={activityStyles.chips}><Chip label="Classificação" selected={!about} onPress={() => setAbout(false)}/><Chip label="Como funciona" selected={about} onPress={() => setAbout(true)}/></View>
     {about ? <>
-      <Copy>A classificação usa a média de EV por pessoa que participou da equipe neste mês, incluindo quem não registrou pontos. EV verde e azul contribuem para o mesmo resultado.</Copy>
+      <Copy>A classificação usa a média de EV por pessoa que participou da equipe neste mês, incluindo quem não registrou pontos. Atividades físicas e mentais contribuem para o mesmo resultado.</Copy>
       <Copy muted>Contam os dias desde a entrada até o dia anterior à saída. Entrar em uma equipe não transfere pontos de dias anteriores. Quem sai continua na média daquele mês, com os pontos dos dias em que participou.</Copy>
       <Copy muted>Somente equipes com pelo menos 10 participantes elegíveis aparecem. Os resultados são agregados e não mostram atividades individuais.</Copy>
       <Copy muted>A classificação é consolidada automaticamente a cada 15 minutos. Atualizar esta tela consulta o último resultado disponível. O ranking reúne EV válido de diferentes organizações e se renova a cada mês. Se você participa de várias equipes, seus pontos elegíveis contribuem para cada uma, uma vez por equipe.</Copy>

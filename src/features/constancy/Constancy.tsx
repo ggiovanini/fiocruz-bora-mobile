@@ -3,6 +3,8 @@ import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } fr
 import { apiEnabled } from '@/api/session';
 import { useMock } from '@/mocks/MockProvider';
 import { useRouter } from 'expo-router';
+import { Sheet } from '@/ui/Sheet';
+import { Chip } from '@/components/ActivityUI';
 import { Flow, Button } from '@/ui/Flow';
 import { colors } from '@/design/tokens';
 import { Icon } from '@/design/Icon';
@@ -40,6 +42,8 @@ function Day({ date, today, status, selected, weekly, onPress }: {
 export default function Constancy() {
   const router = useRouter();
   const { api } = useMock();
+  const [view, setView] = useState<'week' | 'month'>('week');
+  const [detailOpen, setDetailOpen] = useState(false);
   const [loadError, setLoadError] = useState('');
   const today = useToday();
   const [selected, setSelected] = useState(today);
@@ -71,30 +75,31 @@ export default function Constancy() {
   const daily = record ? dailyEnergy(record.green, record.blue, record.goal) : null;
   const currentMonth = today.slice(0, 7);
   const monthLabel = localDate(`${month}-01`).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-  function select(date: string) { setSelected(date); setMonth(date.slice(0, 7)); }
+  function select(date: string) { setDetailOpen(true); setSelected(date); setMonth(date.slice(0, 7)); }
   function browseMonth(delta: number) {
     const next = shiftMonth(month, delta);
     setMonth(next);
     setSelected(next === currentMonth ? today : `${next}-01`);
   }
   return <Flow title="Minha constância" scrollRef={scroll}>
-    <Text style={s.intro}>Um dia de cada vez. Cada combinação de movimento e mente faz parte da sua jornada.</Text>
+
     {!apiEnabled && <Text style={s.previewTag}>HISTÓRICO ILUSTRATIVO</Text>}
     {!!loadError && <><Text style={s.support}>{loadError}</Text><Button title="Tentar novamente" onPress={() => { void api.loadEnergyMonth(month).then(() => setLoadError('')).catch(() => {}); }} /></>}
     <View style={s.streakCard}>
       <View style={s.cardTop}><View style={s.iconBadge}><Icon name="leaf" color={colors.lime} size={24} /></View><Text style={s.eyebrow}>SEU RITMO, SUA JORNADA</Text></View>
       <Text style={s.streakValue}>{streak}<Text style={s.streakUnit}> {streak === 1 ? 'dia' : 'dias'}</Text></Text>
       <Text style={s.streakDescription}>com a meta de EV alcançada em sequência</Text>
-      <Text style={s.support}>{dayStatus(today, today, byDate.get(today)) === 'complete' ? 'Você completou a meta de hoje. Cada dia conta.' : streak ? 'Sua sequência segue até ontem. Hoje ainda está em andamento.' : 'Sua próxima atividade pode ser o primeiro passo.'}</Text>
+
     </View>
-    <View style={s.weekCard}>
-      <View style={s.sectionRow}><Text style={s.sectionTitle}>Um dia de cada vez</Text><Pressable accessibilityRole="button" accessibilityLabel="Ver calendário mensal" onPress={() => scroll.current?.scrollTo({ y: Math.max(0, calendarOffset.current - 12), animated: false })} style={s.todayButton}><Text style={s.todayText}>Ver mês</Text></Pressable></View>
+    <View style={s.sectionRow}><Chip label="Semana" selected={view === 'week'} onPress={() => setView('week')}/><Chip label="Mês" selected={view === 'month'} onPress={() => setView('month')}/></View>
+    {view === 'week' && <View style={s.weekCard}>
+      <View style={s.sectionRow}><Text style={s.sectionTitle}>Um dia de cada vez</Text><Pressable accessibilityRole="button" accessibilityLabel="Ver calendário mensal" onPress={() => setView('month')} style={s.todayButton}><Text style={s.todayText}>Ver mês</Text></Pressable></View>
       <Text style={s.caption}>{formatDate(week[0])} a {formatDate(week[6])}</Text>
       <View style={s.weekLabels}>{week.map(date => <Text key={date} style={s.weekLabel}>{weekdayLabels[(localDate(date).getDay() + 6) % 7]}</Text>)}</View>
       <View style={s.weekRow}>{week.map(date => <View key={date} style={s.weekColumn}><Day date={date} today={today} status={dayStatus(date, today, byDate.get(date))} selected={selected === date} weekly onPress={() => select(date)} /></View>)}</View>
       <View style={s.weekFooter}><Text style={s.support}>Sua próxima atividade conta.</Text><Pressable accessibilityRole="button" accessibilityLabel="Adicionar uma atividade" onPress={() => router.push('/activity')} style={s.add}><Icon name="plus" color={colors.background} size={23} /></Pressable></View>
-    </View>
-    <View style={s.calendarCard} onLayout={event => { calendarOffset.current = event.nativeEvent.layout.y; }}>
+    </View>}
+    {view === 'month' && <View style={s.calendarCard} onLayout={event => { calendarOffset.current = event.nativeEvent.layout.y; }}>
       <View style={s.sectionRow}><Text style={s.sectionTitle}>Seu calendário</Text><Pressable accessibilityRole="button" onPress={() => select(today)} style={s.todayButton}><Text style={s.todayText}>Hoje</Text></Pressable></View>
       <View style={s.monthNavigation}>
         <Pressable accessibilityRole="button" accessibilityLabel="Mês anterior" onPress={() => browseMonth(-1)} style={s.monthButton}><Icon name="back" size={20} color={colors.text} /></Pressable>
@@ -105,7 +110,8 @@ export default function Constancy() {
       <View style={s.grid}>{cells.map((date, index) => <View key={date ?? `blank-${index}`} style={s.gridCell}>{date && <Day date={date} today={today} status={dayStatus(date, today, byDate.get(date))} selected={selected === date} onPress={() => select(date)} />}</View>)}</View>
       <View style={s.legend}><View style={s.legendItem}><View style={[s.legendDot, { backgroundColor: colors.lime }]} /><Text style={s.legendText}>Meta alcançada</Text></View><View style={s.legendItem}><View style={[s.legendDot, { backgroundColor: colors.primary }]} /><Text style={s.legendText}>Em progresso</Text></View></View>
       <Text style={s.monthSummary}>{completedInMonth(month, today, records)} dias com meta alcançada neste mês</Text>
-    </View>
+    </View>}
+    <Sheet visible={detailOpen} title="Detalhe do dia" onClose={() => setDetailOpen(false)}>
     <View style={s.detailCard} accessibilityLiveRegion="polite">
       <View style={s.sectionRow}><Text style={s.detailDate}>{formatDate(selected)}</Text>{selected === today && <Text style={s.todayTag}>HOJE</Text>}</View>
       {daily && record ? <>
@@ -113,10 +119,11 @@ export default function Constancy() {
         <Text style={s.detailValue}>{daily.total}<Text style={s.detailUnit}> / {record.goal} EV</Text></Text>
         <View accessible accessibilityLabel={`${Math.round(daily.progress)}% da meta de EV`} style={s.track}><View style={{ width: `${daily.greenProgress}%`, backgroundColor: colors.lime }} /><View style={{ width: `${daily.blueProgress}%`, backgroundColor: colors.primary }} /></View>
         <View style={s.energyRow}><View style={s.energyItem}><Icon name="activity" color={colors.lime} size={20} /><Text style={s.energyText}>{record.green} EV · física</Text></View><View style={s.energyItem}><Icon name="book" color={colors.primary} size={20} /><Text style={s.energyText}>{record.blue} EV · mental</Text></View></View>
-        <Text style={s.support}>{daily.complete ? 'Meta do dia alcançada. As duas cores somam para o mesmo objetivo.' : selected === today ? `Faltam ${daily.remaining} EV. Qualquer uma das duas energias pode completar sua meta.` : 'Cada contribuição faz parte da jornada, mesmo nos dias em que a meta não foi alcançada.'}</Text>
+        <Text style={s.support}>{daily.complete ? 'Meta do dia alcançada. Cada atividade soma para o mesmo objetivo.' : selected === today ? `Faltam ${daily.remaining} EV. Qualquer uma das duas energias pode completar sua meta.` : 'Cada contribuição faz parte da jornada, mesmo nos dias em que a meta não foi alcançada.'}</Text>
         {selected === today && <Button title="Adicionar atividade" onPress={() => router.push('/activity')} />}
       </> : <><Text style={s.emptyTitle}>Sem histórico de EV neste dia</Text><Text style={s.support}>Não há registros para esta data.</Text></>}
     </View>
+    </Sheet>
     {!apiEnabled && <Text style={s.footnote}>Histórico com dados de exemplo.</Text>}
   </Flow>;
 }

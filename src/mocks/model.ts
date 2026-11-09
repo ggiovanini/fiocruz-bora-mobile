@@ -13,7 +13,7 @@ export type Draft = {
 };
 export type Activity = Draft & {
   status: ActivityStatus; createdAt: string; operationKey?: string; membershipId?: string;
-  serverId?: string; awardedEv?: number | null; validationStatus?: string; error?: string; apiPayload?: ManualPayload;
+  source?: string; serverId?: string; awardedEv?: number | null; validationStatus?: string; error?: string; apiPayload?: ManualPayload;
 };
 export type MockState = {
   version: 1;

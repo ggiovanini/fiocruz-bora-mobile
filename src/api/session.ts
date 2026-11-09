@@ -14,10 +14,11 @@ export class ApiError extends Error {
 const listeners = new Set<() => void>();
 export function onSessionExpired(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; }
 
-export async function apiRequest(path: string, init: RequestInit = {}) {
+export async function apiRequest(path: string, init: RequestInit = {}, expectedUserId?: string) {
   if (!apiEnabled) throw new ApiError(0, 'A conexão com o serviço não está configurada.');
   const raw = await AsyncStorage.getItem(key);
   const session: Session | null = raw ? JSON.parse(raw) : null;
+  if(expectedUserId && session?.user.id!==expectedUserId)throw new ApiError(401,'A conta mudou. Confira a sessão antes de enviar o treino.');
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
   try {

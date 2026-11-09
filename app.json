@@ -69,6 +69,7 @@
         }
       ],
       "./plugins/with-testflight-api",
+      "./plugins/with-android-release-api",
       [
         "expo-splash-screen",
         {

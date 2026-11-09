@@ -27,3 +27,32 @@ test('Archive accepts an external HTTPS API and rejects missing, local or invali
     assert.equal(debug.stdout,'http://localhost:8000/api/v1');
   } finally {fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+test('Android Release overrides both API variables and rejects invalid configuration; Debug preserves local settings', () => {
+  const {configureReleaseEnv} = require('../scripts/android-release-cli.cjs');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bora-android-env-'));
+  const file = path.join(dir, '.env.testflight');
+  try {
+    const env = {EXPO_PUBLIC_API_URL: 'http://localhost:8000/api/v1', EXPO_PUBLIC_ANDROID_API_URL: 'http://10.0.2.2:8000/api/v1', __EXPO_ENV_LOADED: '1'};
+    const debug = {...env};
+    configureReleaseEnv(['export:embed', '--dev', 'true'], debug, dir);
+    assert.deepEqual(debug, env);
+    assert.throws(() => configureReleaseEnv(['export:embed', '--dev', 'false'], {...env}, dir));
+    fs.writeFileSync(file, 'EXPO_PUBLIC_API_URL=https://api.example.com/api/v1/\n');
+    configureReleaseEnv(['export:embed', '--dev', 'false'], env, dir);
+    assert.equal(env.EXPO_PUBLIC_API_URL, 'https://api.example.com/api/v1');
+    assert.equal(env.EXPO_PUBLIC_ANDROID_API_URL, env.EXPO_PUBLIC_API_URL);
+    assert.equal(env.EXPO_NO_DOTENV, '1');
+    assert.equal(env.__EXPO_ENV_LOADED, undefined);
+    fs.writeFileSync(file, 'EXPO_PUBLIC_API_URL=http://localhost/api/v1\n');
+    assert.throws(() => configureReleaseEnv(['export:embed', '--dev', 'false'], env, dir));
+  } finally { fs.rmSync(dir, {recursive: true, force: true}); }
+});
+
+test('Android API plugin survives repeated prebuild and tracks release configuration', () => {
+  const {configureReleaseApi} = require('../plugins/with-android-release-api');
+  const source = fs.readFileSync(path.resolve(__dirname, '../android/app/build.gradle'), 'utf8');
+  assert.equal(configureReleaseApi(source), source);
+  assert.match(source, /cliFile = file\("\$projectRoot\/scripts\/android-release-cli.cjs"\)/);
+  assert.match(source, /inputs.files\(file\("\$projectRoot\/\.env.testflight"\)/);
+});

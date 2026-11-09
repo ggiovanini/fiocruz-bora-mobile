@@ -8,7 +8,7 @@ import {hasAccess, useMock} from '@/mocks/MockProvider';
 import {isNewNotice, type Cursor} from './notice';
 
 Notifications.setNotificationHandler({handleNotification: async () => ({shouldShowBanner:true, shouldShowList:true, shouldPlaySound:true, shouldSetBadge:false})});
-type Inbox = {unread:number; error:string; enabled:boolean; refresh:()=>Promise<void>; enable:()=>Promise<void>; disable:()=>Promise<void>; test:()=>Promise<void>};
+type Inbox = {unread:number; error:string; enabled:boolean; refresh:()=>Promise<void>; enable:(openSettings?:boolean)=>Promise<void>; disable:()=>Promise<void>; test:()=>Promise<void>};
 const Context=createContext<Inbox|null>(null);
 const allowed=(permission: Notifications.NotificationPermissionsStatus)=>permission.granted || permission.ios?.status===Notifications.IosAuthorizationStatus.PROVISIONAL;
 export function NotificationProvider({children}:PropsWithChildren) {
@@ -69,7 +69,7 @@ export function NotificationProvider({children}:PropsWithChildren) {
   if(user && navigation?.key)void Notifications.getLastNotificationResponseAsync().then(response=>{if(response)open(response);return Notifications.clearLastNotificationResponseAsync();}).catch(()=>{});
   return()=>listener.remove();
  },[user,router,navigation?.key]);
- const enable=async()=>{
+ const enable=async(openSettings=true)=>{
   const id=current.current;if(!id)return;
   const context=scope.current;
   try{
@@ -78,7 +78,7 @@ export function NotificationProvider({children}:PropsWithChildren) {
    let permission=await Notifications.getPermissionsAsync();
    if(!allowed(permission)&&permission.canAskAgain)permission=await Notifications.requestPermissionsAsync();
    if(current.current!==id||scope.current!==context)return;
-   if(!allowed(permission)){setError('Avisos não autorizados. Você pode permiti-los nos ajustes do aparelho.');if(!permission.canAskAgain)await Linking.openSettings();return;}
+   if(!allowed(permission)){setError('Avisos não autorizados. Você pode permiti-los nos ajustes do aparelho.');if(!permission.canAskAgain&&openSettings)await Linking.openSettings();return;}
    await AsyncStorage.setItem(preference(id),'true');if(current.current!==id||scope.current!==context)return;setEnabled(true);setError('');await refresh();
   }catch{if(current.current===id)setError('Não foi possível ativar os avisos neste aparelho.');}
  };

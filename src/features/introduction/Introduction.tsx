@@ -1,3 +1,5 @@
+import { ActivityIllustrations } from '../avatar/ActivityIllustrations';
+import { BeanImage } from '../avatar/BeanImage';
 import { Brand } from '@/components/Brand';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -12,19 +14,19 @@ import { Icon } from '@/design/Icon';
 
 const slides = [
   {
-    eyebrow: 'CORPO E MENTE EM MOVIMENTO',
-    title: 'Seu bem-estar\nganha energia.',
-    description: 'Mover o corpo gera energia verde. Aprender e exercitar a mente gera energia azul. Cada atividade é uma forma de cuidar de você.',
+    eyebrow: '',
+    title: 'Mexa-se pela mente, mova-se pela vida!',
+    description: '',
   },
   {
     eyebrow: 'ENERGIA VITAL · EV',
-    title: 'Duas energias.\nUma só meta.',
-    description: 'EV é a soma das energias verde e azul. Você escolhe sua meta diária e pode alcançá-la com atividades físicas, intelectuais ou uma combinação das duas.',
+    title: 'Uma só meta.',
+    description: 'Cada atividade soma Energia Vital (EV).',
   },
   {
-    eyebrow: 'NO SEU RITMO, TODOS OS DIAS',
+    eyebrow: '',
     title: 'Pequenos passos.\nMais constância.',
-    description: 'Registre suas atividades e acompanhe seu progresso. O arco ao redor do personagem mostra quanto falta para a meta de EV do dia.',
+    description: 'Registre e acompanhe seu progresso.',
   },
 ];
 
@@ -62,16 +64,24 @@ export default function Introduction({ onFinish, finishLabel = 'Bóra começar' 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(false);
   const pending = useRef(false);
-  const scroll = useRef<ScrollView>(null);
-  const { height } = useWindowDimensions();
-  const slide = slides[step];
+  const pager = useRef<ScrollView>(null);
+  const { height, width } = useWindowDimensions();
+  const [pageWidth, setPageWidth] = useState(Math.min(width, 560));
+  function goTo(index: number) {
+    if (pending.current) return;
+    const next = Math.max(0, Math.min(slides.length - 1, index));
+    pager.current?.scrollTo({ x: next * pageWidth, animated: true });
+  }
   useEffect(() => {
-    scroll.current?.scrollTo({ y: 0, animated: false });
+    // Keep the current page aligned when rotating or resizing the window.
+    pager.current?.scrollTo({ x: step * pageWidth, animated: false });
+  }, [pageWidth]);
+  useEffect(() => {
     AccessibilityInfo.announceForAccessibility(`Apresentação ${step + 1} de 3. ${slides[step].title.replace('\n', ' ')}`);
     if (step === 0) return;
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => { setStep(value => value - 1); return true; });
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => { goTo(step - 1); return true; });
     return () => subscription.remove();
-  }, [step]);
+  }, [step, pageWidth]);
   async function finish() {
     if (pending.current) return;
     pending.current = true;
@@ -83,42 +93,48 @@ export default function Introduction({ onFinish, finishLabel = 'Bóra começar' 
   }
   return <View style={s.screen}>
     <StatusBar style="light" />
-    <Image source={require('../../../assets/images/welcome-energy.jpg')} style={[StyleSheet.absoluteFill, s.background, step > 0 && s.backgroundDim]} resizeMode="cover" accessible={false} />
+    <Image source={require('../../../assets/images/welcome-bean-v1.png')} style={[StyleSheet.absoluteFill, s.background, step > 0 && s.backgroundDim]} resizeMode="cover" accessible={false}/>
     <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none" accessible={false}>
-      <Defs><LinearGradient id="shade" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor={colors.background} stopOpacity={0.12} /><Stop offset="0.43" stopColor={colors.background} stopOpacity={0.08} /><Stop offset="0.62" stopColor={colors.background} stopOpacity={0.96} /><Stop offset="1" stopColor={colors.background} /></LinearGradient></Defs>
-      <Rect width="100%" height="100%" fill="url(#shade)" />
+      <Defs><LinearGradient id="shade" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor={colors.background} stopOpacity={0.12}/><Stop offset="0.43" stopColor={colors.background} stopOpacity={0.08}/><Stop offset="0.62" stopColor={colors.background} stopOpacity={0.96}/><Stop offset="1" stopColor={colors.background}/></LinearGradient></Defs>
+      <Rect width="100%" height="100%" fill="url(#shade)"/>
     </Svg>
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
         <Brand />
         {step < 2 ? <Pressable accessibilityRole="button" accessibilityLabel="Pular apresentação" disabled={saving} onPress={() => void finish()} style={s.skip}><Text style={s.skipText}>Pular</Text></Pressable> : <Text style={s.stepCount}>03 / 03</Text>}
       </View>
-      <ScrollView ref={scroll} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-        <View style={[s.hero, { minHeight: Math.min(300, Math.max(200, height * 0.32)) }]}>
-          {step === 1 && <GoalIllustration />}
-          {step === 2 && <RoutineIllustration />}
-        </View>
-        <View style={s.copy}>
-          <Text style={s.eyebrow}>{slide.eyebrow}</Text>
-          <Text accessibilityRole="header" style={s.title}>{slide.title}</Text>
-          <Text style={s.description}>{slide.description}</Text>
-          {step === 0 && <View style={s.legend}>
-            <View style={s.legendItem}><Icon name="activity" color={colors.lime} size={22} /><Text style={s.legendText}>Corpo · verde</Text></View>
-            <View style={s.legendItem}><Icon name="book" color={colors.primary} size={22} /><Text style={s.legendText}>Mente · azul</Text></View>
-          </View>}
-          {step === 1 && <Text style={s.note}>Sem uma cota obrigatória de cada cor.</Text>}
-          {step === 2 && <Text style={s.note}>O mesmo personagem. Uma jornada que é sua.</Text>}
-        </View>
-      </ScrollView>
+      <View style={{ flex: 1 }} onLayout={event => { if (event.nativeEvent.layout.width > 0) setPageWidth(event.nativeEvent.layout.width); }}>
+        <ScrollView ref={pager} horizontal pagingEnabled directionalLockEnabled showsHorizontalScrollIndicator={false}
+          scrollEnabled={!saving} scrollEventThrottle={16}
+          onScroll={event => {
+            const index = Math.max(0, Math.min(slides.length - 1, Math.round(event.nativeEvent.contentOffset.x / pageWidth)));
+            setStep(index);
+          }}>
+          {slides.map((slide, index) => <View key={slide.title} style={{ width: pageWidth }} accessibilityElementsHidden={step !== index} importantForAccessibility={step === index ? 'auto' : 'no-hide-descendants'}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false} directionalLockEnabled>
+              <View style={[s.hero, { minHeight: Math.min(300, Math.max(200, height * 0.32)) }]}>
+                {index === 1 && <GoalIllustration />}
+                {index === 2 && <><BeanImage size={100}/><RoutineIllustration /></>}
+              </View>
+              <View style={s.copy}>
+                {!!slide.eyebrow && <Text style={s.eyebrow}>{slide.eyebrow}</Text>}
+                <Text accessibilityRole="header" style={s.title}>{slide.title}</Text>
+                {index === 0 && <View style={{ marginTop: 4, maxWidth: 280, width: '100%', alignSelf: 'center' }}><ActivityIllustrations size={64}/></View>}
+                {!!slide.description && <Text style={s.description}>{slide.description}</Text>}
+              </View>
+            </ScrollView>
+          </View>)}
+        </ScrollView>
+      </View>
       <View style={s.footer}>
         <View style={s.progressRow}>
           <View style={s.dots} accessible accessibilityLabel={`Tela ${step + 1} de 3`}>
             {slides.map((_, index) => <View key={index} style={[s.dot, index === step && s.dotActive]} />)}
           </View>
-          {step > 0 && <Pressable accessibilityRole="button" onPress={() => setStep(value => value - 1)} disabled={saving} style={s.back}><Text style={s.backText}>Voltar</Text></Pressable>}
+          {step > 0 && <Pressable accessibilityRole="button" onPress={() => goTo(step - 1)} disabled={saving} style={s.back}><Text style={s.backText}>Voltar</Text></Pressable>}
         </View>
         {error && <Text accessibilityRole="alert" style={s.error}>Não foi possível salvar a apresentação. Toque em tentar novamente.</Text>}
-        <Pressable accessibilityRole="button" accessibilityState={{ disabled: saving, busy: saving }} disabled={saving} onPress={() => error || step === 2 ? void finish() : setStep(value => value + 1)} style={({ pressed }) => [s.next, pressed && s.pressed]}>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: saving, busy: saving }} disabled={saving} onPress={() => error || step === 2 ? void finish() : goTo(step + 1)} style={({ pressed }) => [s.next, pressed && s.pressed]}>
           {saving ? <ActivityIndicator color={colors.background} accessibilityLabel="Salvando apresentação" /> : <><Text style={s.nextText}>{error ? 'Tentar novamente' : step === 2 ? finishLabel : 'Continuar'}</Text><Icon name="arrow" color={colors.background} size={23} /></>}
         </Pressable>
       </View>

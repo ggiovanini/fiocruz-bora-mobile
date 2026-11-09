@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Group, Mesh } from 'three';
 import {progressArcs} from './progressArc';
 export type Motion = 'idle' | 'walk' | 'celebrate';
-export type SceneProps = { motion: Motion; playing: boolean; speed: number; greenProgress: number; blueProgress: number };
+export type SceneProps = { motion: Motion; playing: boolean; speed: number; greenProgress: number; blueProgress: number; showPlatform?: boolean };
 export type ViewportProps = SceneProps & { rendering?: boolean; zoom?: number };
 
 function ProgressArc({start, sweep, color, depth = 0}: {start: number; sweep: number; color: string; depth?: number}) {
@@ -29,7 +29,7 @@ function Limb({ x, leg = false, side, motion, time }: { x: number; leg?: boolean
   </group>;
 }
 
-export function AvatarScene({ motion, playing, speed, greenProgress, blueProgress }: SceneProps) {
+export function AvatarScene({ motion, playing, speed, greenProgress, blueProgress, showPlatform = true }: SceneProps) {
   const arcs = progressArcs(greenProgress, blueProgress);
   const body = useRef<Group>(null);
   const time = useRef(0);
@@ -61,7 +61,9 @@ export function AvatarScene({ motion, playing, speed, greenProgress, blueProgres
       <Limb x={-.43} side={-1} motion={motion} time={time} /><Limb x={.43} side={1} motion={motion} time={time} />
       <Limb x={-.21} side={-1} leg motion={motion} time={time} /><Limb x={.21} side={1} leg motion={motion} time={time} />
     </group>
+    {showPlatform && <>
     <mesh ref={base} position={[0, -1.65, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[.65, .72, 64]} /><meshBasicMaterial color="#0a9ff5" side={2} /></mesh>
     <mesh position={[0, -1.66, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[.5, 48]} /><meshBasicMaterial color="#124d59" side={2} /></mesh>
+    </>}
   </>;
 }

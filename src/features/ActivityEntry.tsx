@@ -1,87 +1,83 @@
+import { useCallback, useEffect, useState } from 'react';
+import { BackHandler, Pressable, Text, useWindowDimensions, View } from 'react-native';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { apiEnabled } from '@/api/session';
 import { validateApiDraft } from '@/api/activityMapping';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Button, Copy, Field, Flow, Notice } from '@/ui/Flow';
-import { ActionRow, Chip, activityStyles as ui } from '@/components/ActivityUI';
+import { useMock } from '@/mocks/MockProvider';
+import { activityOptions, localDate, newDraft, validateDraft, type Draft } from '@/mocks/model';
+import { Button, Copy, Field, Notice } from '@/ui/Flow';
 import { Icon } from '@/design/Icon';
 import { colors } from '@/design/tokens';
-import { useMock } from '@/mocks/MockProvider';
-import { activityOptions, activityTitle, localDate, newDraft, validateDraft } from '@/mocks/model';
-import { missions } from '@/mocks/catalog';
-function yesterday() { const date = new Date(); date.setDate(date.getDate() - 1); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`; }
+import { BeanImage } from './avatar/BeanImage';
+import { ActivityStepScreen, activityStepStyles as s } from './activity/ActivityStepScreen';
+import { recentDates, supportsEnergy, type EnergyKind } from './activity/catalog';
+
+type Step = 'kind' | 'activity' | 'name' | 'duration' | 'when';
 export default function ActivityEntry() {
   const { state, dispatch, api } = useMock();
   const router = useRouter();
-  const [editing, setEditing] = useState(!!state.draft);
-  const [choosing, setChoosing] = useState(!state.draft?.type);
-  const [filter, setFilter] = useState('all');
+  const { height } = useWindowDimensions();
+  const { group } = useLocalSearchParams<{ group?: string }>();
+  const initialKind = group === 'movement' ? 'physical' : group === 'mind' ? 'intellectual' : undefined;
+  const [kind, setKind] = useState<EnergyKind>(initialKind ?? state.draft?.energyDimension ?? 'physical');
+  const [step, setStep] = useState<Step>(initialKind ? 'activity' : 'kind');
   const [search, setSearch] = useState('');
-  const [customDate, setCustomDate] = useState(false);
+  const [customTime, setCustomTime] = useState(false);
   const [error, setError] = useState('');
   const draft = state.draft;
   const today = api.data.energy?.today.date ?? localDate();
-  const yesterdayDate = new Date(`${today}T12:00:00Z`); yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
-  const yesterdayKey = yesterdayDate.toISOString().slice(0, 10);
-  const options = apiEnabled ? api.data.catalog.map(item => ({ type: item.name, code: item.code, group: item.discovery_group,
-    custom: item.requires_custom_name, icon: item.discovery_group === 'mind' ? 'book' as const : 'activity' as const }))
-    : activityOptions.map(item => ({ ...item, code: undefined, custom: item.type === 'Outra atividade' }));
-  const selectedType = options.find(item => apiEnabled ? item.code === draft?.activityCode : item.type === draft?.type);
-  const customType = options.find(item => item.custom);
-  const makeDraft = () => ({ ...newDraft(), date: today });
-  const update = (value: Partial<NonNullable<typeof draft>>) => {
-    if (draft) dispatch({ type: 'draft', value: { ...draft, ...value } });
-    setError('');
-  };
-  if (!editing || !draft) return <Flow key="entry" title="Cada momento conta.">
-    <Copy muted>Uma caminhada, uma leitura, uma pausa. Escolha como trazer esse momento para a sua jornada.</Copy>
-    <View style={s.energyNote}><View style={[s.dot,{backgroundColor:colors.lime}]} /><View style={[s.dot,{backgroundColor:colors.primary}]} /><Text style={s.energyText}>Dois caminhos para a mesma Energia Vital.</Text></View>
-    {draft && <View style={s.resume}><Text style={ui.heading}>Você tem um rascunho</Text><Text style={ui.muted}>{activityTitle(draft) || 'Atividade ainda não escolhida'}</Text><Button title="Continuar meu registro" onPress={() => setEditing(true)} /></View>}
-    <View style={{ marginTop: 12 }}>
-      <Text style={ui.eyebrow}>Como você quer registrar?</Text>
-      <ActionRow icon="edit" title="Registrar por conta própria" description="Escolha uma atividade e conte quanto tempo dedicou." color={colors.lime} onPress={() => { if (!draft) dispatch({ type: 'draft', value: { ...makeDraft(), type: '' } }); setEditing(true); if (!draft) setChoosing(true); }}/>
-      <ActionRow icon="phone" title="Trazer dados do aparelho" description="Consulte passos e treinos. Você controla a conexão." onPress={() => router.push('/health')}/>
-      <ActionRow icon="qr" title="Participar de um evento" description="Encontre um evento e registre sua presença." onPress={() => router.push('/events')}/>
-    </View>
-    <View style={s.discovery}><Text style={ui.heading}>Ainda procurando inspiração?</Text><Text style={ui.muted}>Descubra conteúdos para aprender, desacelerar e cuidar de você.</Text><Pressable accessibilityRole="button" onPress={() => router.push('/content')} style={s.textLink}><Text style={s.textLinkLabel}>Explorar conteúdos</Text><Icon name="arrow" size={17}/></Pressable></View>
-    {!apiEnabled && <Text style={ui.muted}>Os registros ainda são locais e não geram Energia Vital.</Text>}
-  </Flow>;
-  const mission = missions.find(m => m.id === draft.missionId);
+  const options = apiEnabled ? api.data.catalog : activityOptions.map(item => ({ code: item.type, name: item.type, discovery_group: item.group, requires_custom_name: item.type === 'Outra atividade', energy_dimension: item.group === 'movement' ? 'physical' as const : item.group === 'mind' ? 'intellectual' as const : 'choice' as const, recording_window_days: 7 }));
+  const selected = options.find(item => apiEnabled ? item.code === draft?.activityCode : item.name === draft?.type);
+  const resumeKind = selected?.energy_dimension === 'physical' || selected?.energy_dimension === 'intellectual' ? selected.energy_dimension : draft?.energyDimension;
   const query = search.trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-  const visible = options.filter(option => option.group !== 'other' && (filter === 'all' || option.group === filter) && option.type.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(query));
-  return <Flow key={choosing ? "choose" : "details"} title="Um momento para você.">
-    <View style={s.step}><Text style={ui.eyebrow}>01 · Sua atividade</Text><Text style={s.stepMuted}>02 · Revisão</Text></View>
-    <Text style={ui.muted}>Registre o que fez. A Energia Vital reúne movimento e mente em uma mesma meta.</Text>
-    {mission && <Notice>Sugestão do desafio: {mission.title}. Você pode escolher outra atividade.</Notice>}
-    {choosing ? <>
-    <View style={s.search}><Icon name="search" size={19}/><View style={{flex:1}}><Field label="Buscar atividade" value={search} onChangeText={setSearch} placeholder="O que fez hoje?" autoCorrect={false}/></View></View>
-    <View style={ui.chips}>{[['all','Todas'],['movement','Movimento'],['mind','Mente'],['wellbeing','Bem-estar']].map(([value,label]) => <Chip key={value} label={label} selected={filter===value} onPress={() => setFilter(value)}/>)}</View>
-    <View style={s.options}>
-      {visible.map(option => { const selected = draft.type === option.type; return <Pressable key={option.type} accessibilityRole="button" accessibilityLabel={option.type} accessibilityState={{selected}} onPress={() => { update({type:option.type, activityCode:option.code, activityName:undefined, energyDimension:undefined}); setChoosing(false); }} style={[s.option,selected&&s.optionSelected]}><Icon name={option.icon} size={20} color={selected ? colors.text : colors.muted}/><Text style={[s.optionLabel,selected&&{color:colors.text}]}>{option.type}</Text>{selected && <Icon name="check" size={15} color={colors.text}/>}</Pressable>; })}
-    </View>
-    {!visible.length && <Text style={ui.muted}>Não encontramos essa sugestão. Você pode nomear sua atividade abaixo.</Text>}
-    {customType && <Pressable accessibilityRole="button" accessibilityState={{selected:selectedType?.custom}} onPress={() => { update({type:customType?.type ?? 'Outra atividade',activityCode:customType?.code,energyDimension:undefined}); setChoosing(false); }} style={s.other}><Icon name={selectedType?.custom?'check':'plus'} size={19}/><Text style={s.otherLabel}>Outra atividade</Text><Text style={s.otherHint}>Conte do seu jeito</Text></Pressable>}
-    </> : <Pressable accessibilityRole="button" accessibilityLabel="Alterar atividade selecionada" onPress={() => setChoosing(true)} style={s.selectedCard}><Icon name={selectedType?.custom?'plus':selectedType?.icon || 'activity'} color={colors.text}/><View style={{flex:1,gap:5}}><Text style={ui.eyebrow}>SUA ESCOLHA</Text><Text style={ui.heading}>{activityTitle(draft)}</Text></View><Text style={s.textLinkLabel}>Alterar</Text></Pressable>}
-    {selectedType?.custom && <Field label="Nome da atividade" placeholder="Ex.: tocar um instrumento" value={draft.activityName || ''} maxLength={80} onChangeText={activityName => update({activityName})}/>}
-    {!!draft.type && <>
-    <View style={ui.line}/>
-    <Text style={ui.heading}>Quanto tempo você dedicou?</Text>
-    <View style={ui.chips}>{['10','20','30','45'].map(value => <Chip key={value} label={`${value} min`} selected={draft.minutes===value} onPress={() => update({minutes:value})}/>)}</View>
-    <Field label="Tempo em minutos" value={draft.minutes} onChangeText={minutes => update({minutes})} keyboardType="number-pad" placeholder="Ou informe outro tempo" maxLength={4}/>
-    <Text style={ui.heading}>Quando aconteceu?</Text>
-    <View style={ui.chips}><Chip label="Hoje" selected={!customDate&&draft.date===today} onPress={() => {setCustomDate(false);update({date:today});}}/><Chip label="Ontem" selected={!customDate&&draft.date===yesterdayKey} onPress={() => {setCustomDate(false);update({date:yesterdayKey});}}/><Chip label="Outra data" selected={customDate || ![today,yesterdayKey].includes(draft.date)} onPress={() => setCustomDate(true)}/></View>
-    {(customDate || ![today,yesterdayKey].includes(draft.date)) && <Field label="Data (AAAA-MM-DD)" value={draft.date} onChangeText={date => update({date})} maxLength={10} placeholder="AAAA-MM-DD"/>}
-    {apiEnabled && api.data.catalog.find(item => item.code === draft.activityCode)?.energy_dimension === 'choice' && <>
-      <Text style={ui.heading}>Como essa atividade contribuiu para você?</Text>
-      <View style={ui.chips}><Chip label="Física" selected={draft.energyDimension === 'physical'} onPress={() => update({energyDimension:'physical'})} /><Chip label="Mental" selected={draft.energyDimension === 'intellectual'} onPress={() => update({energyDimension:'intellectual'})} /></View>
+  const visible = options.filter(item => supportsEnergy(item, kind) && item.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(query));
+  useEffect(() => { if (initialKind) { setKind(initialKind); setStep('activity'); setSearch(''); } }, [initialKind]);
+  function close() { if (router.canGoBack()) router.back(); else router.replace('/home'); }
+  const back = useCallback(() => {
+    setError('');
+    if (step === 'kind') { if (router.canGoBack()) router.back(); else router.replace('/home'); }
+    else setStep(step === 'activity' ? 'kind' : step === 'name' ? 'activity' : step === 'duration' ? selected?.requires_custom_name ? 'name' : 'activity' : 'duration');
+  }, [step, selected?.requires_custom_name, router]);
+  useFocusEffect(useCallback(() => { const sub = BackHandler.addEventListener('hardwareBackPress', () => { back(); return true; }); return () => sub.remove(); }, [back]));
+  function update(patch: Partial<Draft>) { if (draft) dispatch({ type: 'draft', value: { ...draft, ...patch } }); setError(''); }
+  function choose(item: typeof options[number]) {
+    dispatch({ type: 'draft', value: { ...(draft ?? newDraft()), type: item.name, activityCode: apiEnabled ? item.code : undefined, activityName: undefined, energyDimension: kind, date: draft?.date ?? today } });
+    setCustomTime(false); setError(''); setStep(item.requires_custom_name ? 'name' : 'duration');
+  }
+  function selectDate(date: string) {
+    if (!draft) { setStep('activity'); return; }
+    const value = { ...draft, date };
+    const message = apiEnabled ? validateApiDraft(value, api.data.catalog, today) : validateDraft(value);
+    update({date});
+    if (message) { setError(message); return; }
+    router.push('/review');
+  }
+  const titles: Record<Step,string> = { kind:'Qual atividade você fez?', activity:kind === 'physical' ? 'Atividade física' : 'Atividade mental', name:'Qual foi a atividade?', duration:'Quanto tempo?', when:'Quando aconteceu?' };
+  return <ActivityStepScreen title={titles[step]} step={step === 'kind' ? 1 : step === 'activity' || step === 'name' ? 2 : step === 'duration' ? 3 : 4} onBack={back} onClose={close}>
+    {step === 'kind' && <>
+      {(['physical','intellectual'] as const).map(value=><Pressable key={value} accessibilityRole="button" onPress={()=>{setKind(value);setSearch('');setError('');setStep('activity');}} style={s.choice}><Icon name={value==='physical'?'activity':'book'} size={26} color={value==='physical'?colors.lime:colors.primary}/><Text style={s.label}>{value==='physical'?'Física':'Mental'}</Text><Icon name="arrow"/></Pressable>)}
+      {draft?.type && resumeKind && <Button secondary title="Continuar registro" onPress={()=>{setKind(resumeKind);update({energyDimension:resumeKind});setStep('duration');}}/>}
+      <View style={{flex:1,justifyContent:'flex-end',minHeight:140}}><BeanImage size={Math.min(240,height*.29)}/></View>
+      <View style={{flexDirection:'row',gap:12}}><Pressable accessibilityRole="button" accessibilityLabel="Importar treinos do aparelho" onPress={()=>router.push('/health')} style={[s.choice,{flex:1,minHeight:54,padding:12}]}><Icon name="phone"/><Text style={[s.hint,{color:colors.text}]}>Importar</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Registrar presença em evento" onPress={()=>router.push('/events')} style={[s.choice,{flex:1,minHeight:54,padding:12}]}><Icon name="qr"/><Text style={[s.hint,{color:colors.text}]}>Evento</Text></Pressable></View>
     </>}
-    <View style={s.validation}><Icon name="leaf" size={20}/><Text style={[ui.muted,{flex:1}]}>{apiEnabled ? 'Registre hoje ou os seis dias anteriores. Os pontos são calculados pelas regras vigentes na data da atividade.' : 'Seu registro será revisado antes de gerar EV.'}</Text></View>
+    {step === 'activity' && <>
+      <Field label="Buscar atividade" value={search} onChangeText={setSearch} placeholder="O que você fez?"/>
+      {apiEnabled && api.busy && !options.length && <Copy muted>Carregando atividades…</Copy>}
+      {visible.map(item=><Pressable key={item.code} accessibilityRole="button" onPress={()=>choose(item)} style={s.choice}><Text style={s.label}>{item.name}</Text><Icon name="arrow" size={20}/></Pressable>)}
+      {!visible.length && !api.busy && <><Notice>Nenhuma atividade disponível para esta busca.</Notice>{apiEnabled && <Button secondary title="Atualizar atividades" onPress={()=>{void api.refresh().catch(()=>setError('Não foi possível atualizar as atividades.'));}}/>}</>}
+    </>}
+    {step === 'name' && <><Field label="Nome da atividade" value={draft?.activityName ?? ''} maxLength={80} onChangeText={activityName=>update({activityName})} placeholder="O que você fez?"/><Button title="Continuar" onPress={()=>{if(!draft?.activityName || draft.activityName.trim().length<2){setError('Informe um nome com pelo menos 2 caracteres.');return;}setError('');setStep('duration');}}/></>}
+    {step === 'duration' && <>
+      <Text style={s.hint}>{draft?.activityName || draft?.type}</Text>
+      <View style={s.grid}>{[10,20,30,45,60,90].map(minutes=><Pressable key={minutes} accessibilityRole="button" accessibilityLabel={`${minutes} minutos`} onPress={()=>{update({minutes:String(minutes)});setStep('when');}} style={s.option}><Text style={s.value}>{minutes} min</Text></Pressable>)}</View>
+      <Pressable accessibilityRole="button" onPress={()=>setCustomTime(true)} style={s.link}><Text style={s.hint}>Outro tempo</Text></Pressable>
+      {customTime && <><Field label="Minutos" value={draft?.minutes ?? ''} keyboardType="number-pad" maxLength={4} onChangeText={minutes=>update({minutes})}/><Button title="Continuar" onPress={()=>{if(!draft || !/^\d+$/.test(draft.minutes) || +draft.minutes<1 || +draft.minutes>1440){setError('Informe de 1 a 1440 minutos.');return;}setError('');setStep('when');}}/></>}
+    </>}
+    {step === 'when' && <>
+      <Text style={s.hint}>{draft?.activityName || draft?.type} · {draft?.minutes} min</Text>
+      {recentDates(today,selected?.recording_window_days ?? 7).map((date,index)=><Pressable key={date} accessibilityRole="button" onPress={()=>selectDate(date)} style={[s.choice,{minHeight:60}]}><Text style={s.label}>{index===0?'Hoje':index===1?'Ontem':new Date(`${date}T12:00:00Z`).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',timeZone:'UTC'})}</Text><Icon name="arrow" size={18}/></Pressable>)}
+    </>}
     {!!error && <Notice>{error}</Notice>}
-    <Button title="Revisar meu registro" onPress={() => {const message=apiEnabled ? validateApiDraft(draft,api.data.catalog,today) : validateDraft(draft);setError(message||'');if(!message)router.push('/review');}}/>
-    <Pressable accessibilityRole="button" onPress={() => router.replace('/home')} style={s.textLink}><Text style={s.textLinkLabel}>Salvar rascunho e continuar depois</Text></Pressable>
-    </>}
-    <Pressable accessibilityRole="button" onPress={() => setEditing(false)} style={s.textLink}><Text style={ui.muted}>Ver outras formas de registrar</Text></Pressable>
-  </Flow>;
+    {apiEnabled && !!api.error && step === 'activity' && <Notice>{api.error}</Notice>}
+  </ActivityStepScreen>;
 }
-const s = StyleSheet.create({ selectedCard:{flexDirection:'row',alignItems:'center',gap:14,padding:18,borderRadius:18,borderWidth:1,borderColor:colors.border,backgroundColor:colors.surface}, energyNote:{flexDirection:'row',alignItems:'center',gap:6,paddingVertical:8},dot:{width:7,height:7,borderRadius:4},energyText:{fontFamily:'Montserrat_500Medium',fontSize:11,color:colors.text,flex:1,marginLeft:4},resume:{gap:10,padding:18,borderWidth:1,borderColor:colors.border,borderRadius:18},discovery:{gap:8,padding:20,backgroundColor:colors.surface,borderRadius:20,marginTop:10},textLink:{minHeight:44,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:10},textLinkLabel:{fontFamily:'Montserrat_500Medium',fontSize:12,color:colors.primary},step:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',paddingVertical:6},stepMuted:{fontSize:10,color:colors.muted,fontFamily:'Montserrat_500Medium'},search:{flexDirection:'row',alignItems:'center',gap:12},options:{flexDirection:'row',flexWrap:'wrap',gap:10},option:{flexDirection:'row',alignItems:'center',gap:8,paddingVertical:15,paddingHorizontal:13,minWidth:'46%',flexGrow:1,borderRadius:15,borderWidth:1,borderColor:colors.border,backgroundColor:colors.surface},optionSelected:{borderColor:colors.text,backgroundColor:colors.surface},optionLabel:{fontFamily:'Montserrat_500Medium',fontSize:12,color:colors.muted,flex:1},other:{flexDirection:'row',alignItems:'center',minHeight:50,gap:9},otherLabel:{fontFamily:'Montserrat_500Medium',fontSize:13,color:colors.primary},otherHint:{fontFamily:'Montserrat_400Regular',fontSize:10,color:colors.muted,marginLeft:'auto'},selection:{fontFamily:'Montserrat_500Medium',fontSize:11,color:colors.lime},validation:{flexDirection:'row',gap:12,paddingVertical:10,alignItems:'flex-start'}, });

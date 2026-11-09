@@ -50,10 +50,11 @@ export function HealthProvider({
       let previous = JSON.stringify({
         connected: session.getSnapshot().connected,
         automatic: session.getSnapshot().automatic,
+        automaticImport: session.getSnapshot().automaticImport,
       });
       unsubscribe = session.subscribe(() => {
-        const { connected, automatic } = session.getSnapshot();
-        const next = JSON.stringify({ connected, automatic });
+        const { connected, automatic, automaticImport } = session.getSnapshot();
+        const next = JSON.stringify({ connected, automatic, automaticImport });
         if (next === previous) return;
         previous = next;
         preferenceWrites = preferenceWrites

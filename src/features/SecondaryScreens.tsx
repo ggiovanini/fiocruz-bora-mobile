@@ -1,5 +1,10 @@
 import { LiveKnowledge, LiveArticle } from './Knowledge';
 import { LiveEvents, LiveEventQr } from "./Events";
+import { ArticleCard } from "./knowledge/KnowledgeViews";
+import { Sheet } from "@/ui/Sheet";
+import { ListScreen } from "@/ui/ListScreen";
+import { EventCard, EventDetail } from "./events/EventViews";
+import type { Event as EventItem } from "./events/model";
 import { apiEnabled } from "@/api/session";
 import { ParticipantAvatar } from "./avatar/ParticipantAvatar";
 import { useState } from "react";
@@ -18,25 +23,18 @@ import { useMock } from "@/mocks/MockProvider";
 import { articles, pilotEvent } from "@/mocks/catalog";
 export function Content({ tab = false }: { tab?: boolean }) { return apiEnabled ? <LiveKnowledge tab={tab}/> : <PreviewContent tab={tab}/>; }
 function PreviewContent({ tab = false }: { tab?: boolean }) {
-  const router = useRouter();
-  return (
-    <Flow title="Conhecer" back={!tab}>
-      <Copy muted>Ideias e conteúdos para movimentar o corpo, aprender e cuidar de você.</Copy>
-      {articles.map((a) => (
-        <Card key={a.id} title={a.title}>
-          <Copy muted>{a.category}</Copy>
-          <Copy>{a.summary}</Copy>
-          <Button
-            secondary
-            title="Abrir conteúdo"
-            onPress={() =>
-              router.push({ pathname: "/article", params: { id: a.id } })
-            }
-          />
-        </Card>
-      ))}
-    </Flow>
-  );
+  const [search,setSearch] = useState('');
+  const [query,setQuery] = useState('');
+  const [selectedId,setSelectedId] = useState<string | null>(null);
+  const selected = articles.find(article=>article.id===selectedId);
+  const filtered = articles.filter(article=>[article.title,article.summary,article.category].some(value=>value.toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR'))));
+  return <ListScreen title="Conhecer" icon="book" back={!tab} search={{value:search,onChangeText:setSearch,onSubmit:()=>setQuery(search.trim()),activeQuery:query,onClear:()=>{setSearch('');setQuery('');},placeholder:'Título, resumo ou categoria'}}>
+    {filtered.map(article=><ArticleCard key={article.id} article={article} onPress={()=>setSelectedId(article.id)}/>)}
+    {!filtered.length && <Card title="Nenhum conteúdo encontrado"><Copy>Tente outro termo ou limpe a busca.</Copy></Card>}
+    <Sheet visible={!!selected} title={selected?.title ?? 'Conhecer'} onClose={()=>setSelectedId(null)}>
+      {selected && <><Copy muted>{selected.category}</Copy><Copy>{selected.summary}</Copy><Notice>Conteúdo de demonstração. Texto completo em preparação.</Notice></>}
+    </Sheet>
+  </ListScreen>;
 }
 export function Article() { return apiEnabled ? <LiveArticle/> : <PreviewArticle/>; }
 function PreviewArticle() {
@@ -59,26 +57,21 @@ function PreviewArticle() {
   );
 }
 export function Events() { return apiEnabled ? <LiveEvents/> : <PreviewEvents/>; }
+function previewEvent(checkedIn: boolean): EventItem {
+  return { id:pilotEvent.id,title:pilotEvent.title,description:'Encontro de demonstração do Bóra.',location:pilotEvent.where,qr_instructions:'Use a simulação de QR Code para experimentar o registro de presença.',starts_at:null,ends_at:null,active:true,checked_in:checkedIn };
+}
 function PreviewEvents() {
   const router = useRouter();
   const { state } = useMock();
-  return (
-    <Flow title="Eventos">
-      <Card title={pilotEvent.title}>
-        <Copy>{pilotEvent.when}</Copy>
-        <Copy>{pilotEvent.where}</Copy>
-        <Placeholder>Descrição e orientações do evento</Placeholder>
-        {state.checkins.includes(pilotEvent.id) ? (
-          <Notice>Presença já confirmada na demonstração.</Notice>
-        ) : (
-          <Button
-            title="Registrar presença por QR Code"
-            onPress={() => router.push("/qr")}
-          />
-        )}
-      </Card>
-    </Flow>
-  );
+  const [search,setSearch] = useState('');
+  const [query,setQuery] = useState('');
+  const [detailOpen,setDetailOpen] = useState(false);
+  const event = previewEvent(state.checkins.includes(pilotEvent.id));
+  const matches = [event.title,event.description,event.location].some(value=>value.toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR')));
+  return <ListScreen title="Eventos" icon="calendar" search={{value:search,onChangeText:setSearch,onSubmit:()=>setQuery(search.trim()),activeQuery:query,onClear:()=>{setSearch('');setQuery('');},placeholder:'Nome, descrição ou local'}}>
+    {matches ? <EventCard event={event} onPress={()=>setDetailOpen(true)}/> : <Card title="Nenhum evento encontrado"><Copy>Tente outro termo ou limpe a busca.</Copy></Card>}
+    <EventDetail event={detailOpen ? event : undefined} onClose={()=>setDetailOpen(false)} illustrative onCheckIn={()=>{setDetailOpen(false);router.push('/qr');}} onMedals={()=>{setDetailOpen(false);router.push('/medals');}}/>
+  </ListScreen>;
 }
 export function Qr() { return apiEnabled ? <LiveEventQr/> : <PreviewQr/>; }
 function PreviewQr() {
@@ -258,7 +251,7 @@ export function Help() {
       </Card>
       <Card title="Dados do aparelho">
         <Copy>Você escolhe se deseja conectar o Saúde ou Health Connect. A consulta depende da sua autorização e pode ser desativada a qualquer momento.</Copy>
-        <Button secondary title="Gerenciar conexão" onPress={() => router.push('/health')} />
+        <Button secondary title="Gerenciar conexão" onPress={() => router.push('/health-settings')} />
       </Card>
       <Card title="Termos e privacidade">
         <Copy>Consulte as condições de uso e como suas informações são utilizadas.</Copy>

@@ -114,3 +114,7 @@ O cabeçalho não exibe o perfil enquanto o participante não tem acesso complet
 **Cenários de demonstração** é uma seção expansível com reapresentação, múltiplos vínculos, falha no acesso e vínculo não elegível, com descrições curtas. **Rever apresentação inicial** também aparece em Controles de demonstração. Ambos abrem a rota pública `/presentation`, que reutiliza as três telas existentes. Concluir ou pular volta à tela de origem (ou ao fluxo adequado se não houver histórico). O botão final manual é **Voltar ao app**. Não altera dados do participante, sessão, rascunhos ou a preferência persistida de primeira abertura; a apresentação automática continua exclusiva da primeira conclusão.
 
 Verificado no iOS: login sem botão de perfil, abertura dos cenários, três telas de reapresentação e retorno ao mesmo login com os cenários ainda abertos. TypeScript e 54 testes aprovados.
+
+## Simplificação de Meu nível · 09/11/2026
+
+A visão principal de /levels prioriza nível, Vitalidade (PV) e próximo marco com progresso e PV restantes. Substitui a apresentação anterior de EV acumulados lado a lado com PV: o saldo histórico permanece disponível em “Como funciona”, junto às regras e, na demonstração, às faixas e ao simulador. O acesso abre um modal Sheet. Nenhuma regra de concessão, desgaste ou faixa foi alterada; o modo conectado usa os valores oficiais da API.

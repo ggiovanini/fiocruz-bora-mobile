@@ -1,3 +1,6 @@
+import { CelebrationPresenter } from '@/features/celebrations/CelebrationPresenter';
+import { HealthImportProvider } from '@/health/HealthImportProvider';
+import { FirstPermissionSetup } from '@/features/permissions/PermissionSetup';
 import { useEffect } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 import { NotificationProvider } from '@/notifications/NotificationProvider';
@@ -29,7 +32,7 @@ function HealthBoundary() {
       enabled={ready && hasAccess(state)}
       preferenceKey={`bora:health-preferences:v2:${state.userId ?? "prototype"}:${state.membershipId ?? state.organization}`}
     >
-      <Navigation />
+      <HealthImportProvider><Navigation /></HealthImportProvider>
     </HealthProvider>
   );
 }
@@ -63,7 +66,7 @@ function Navigation() {
     );
   if (!introduction.completed) return <Introduction onFinish={introduction.finish} />;
   return (
-    <Stack
+    <FirstPermissionSetup><><Stack
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: colors.background },
@@ -80,8 +83,12 @@ function Navigation() {
         <Stack.Screen name="(tabs)" />
         {[
           "profile",
+          "settings",
+          "organization",
+          "permissions",
           "goal",
           "notifications",
+          "notification-settings",
           "medals",
           "activity",
           "review",
@@ -90,6 +97,8 @@ function Navigation() {
           "constancy",
           "levels",
           "health",
+          "health-settings",
+          "health-preview",
           "mission",
           "content",
           "article",
@@ -102,10 +111,10 @@ function Navigation() {
           "demo",
           "avatar-lab",
         ].map((name) => (
-          <Stack.Screen key={name} name={name} />
+          <Stack.Screen key={name} name={name} options={name === "goal" ? { presentation: "transparentModal", animation: "none", contentStyle: { backgroundColor: "transparent" } } : name === "edit-profile" ? { presentation: "modal" } : undefined} />
         ))}
       </Stack.Protected>
-    </Stack>
+    </Stack><CelebrationPresenter /></></FirstPermissionSetup>
   );
 }
 function PreviewBoundary() {

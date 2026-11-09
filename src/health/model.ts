@@ -93,6 +93,7 @@ export function uniqueWorkouts(records: HealthWorkout[]): HealthWorkout[] {
 }
 export type HealthState = {
   automatic: boolean;
+  automaticImport: boolean;
   connected: boolean;
   busy: boolean;
   snapshot: HealthSnapshot | null;
@@ -101,6 +102,7 @@ export type HealthState = {
 };
 const empty = (): HealthState => ({
   automatic: true,
+  automaticImport: false,
   connected: false,
   busy: false,
   snapshot: null,
@@ -130,12 +132,15 @@ export class HealthSession {
   restorePreferences = (preferences: {
     connected: boolean;
     automatic: boolean;
+    automaticImport?: boolean;
   }) => {
     this.publish({
       connected: preferences.connected,
       automatic: preferences.automatic,
+      automaticImport: preferences.automaticImport===true,
     });
   };
+  setAutomaticImport = (automaticImport: boolean) => { this.publish({automaticImport}); };
   setAutomatic = (automatic: boolean) => {
     if (!automatic && this.value.busy) this.clearReadings();
     this.publish({ automatic });
@@ -223,7 +228,7 @@ export class HealthSession {
       this.publish({
         snapshot: { ...snapshot, workouts: uniqueWorkouts(snapshot.workouts) },
         message:
-          "Leitura concluída. Selecione um treino e autorize seu envio para registrar na jornada.",
+          "Leitura concluída. Os treinos estão disponíveis para registro na jornada.",
       });
     } catch {
       if (generation === this.generation)
