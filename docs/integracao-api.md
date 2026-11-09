@@ -53,3 +53,7 @@ Testes de contrato e mapeamento cobrem UUIDs, payload, escolhas do catálogo, ja
 ## Desafios e conquistas
 
 A aba Desafios também está conectada a `/memberships/{membership}/challenges`. A coleção pessoal usa `/me/medals`, com acesso pelo Perfil e pelos Desafios. A API avalia as atividades aprovadas e concede a medalha uma única vez; o app exibe o progresso e a conquista sem conceder pontos por conta própria. Regras, período e estilos são mantidos no admin. Ao abrir um desafio, o tipo elegível pode ser preenchido no formulário sem substituir um rascunho existente.
+
+### Listagem de equipes com busca e abas
+
+`GET /api/v1/teams` aceita `q` (até 100 caracteres, busca literal em nome/descrição) e `participation=joined|available`. Sem filtro de participação, preserva a listagem anterior. Filtros são aplicados antes da paginação (20 itens); `total` refere-se à combinação de aba e termo. `joined` usa apenas participações atuais da pessoa autenticada, incluindo equipes pausadas. `available` exclui essas participações e retorna apenas equipes ativas. A API preserva revisão e chave idempotente para entrada/saída.

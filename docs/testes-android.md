@@ -3,7 +3,7 @@
 ## Estado atual
 
 - Pacote Android alinhado com app.json: `br.fiocruz.mobile.bora`.
-- Versão 1.0.1 e versionCode 154; ícones, cores e permissão de câmera reaplicados pelo prebuild.
+- Versão 1.0.2 e versionCode 155; ícones, cores e permissão de câmera reaplicados pelo prebuild.
 - Classes Kotlin movidas para o pacote atual; explicação nativa do Health Connect atualizada no plugin e na classe gerada.
 - Node 20.19.4: TypeScript e 77 testes aprovados.
 - JDK 17, SDK 36, arquitetura arm64-v8a: assembleDebug concluído.

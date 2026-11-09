@@ -6,7 +6,6 @@ import { ListScreen } from "@/ui/ListScreen";
 import { EventCard, EventDetail } from "./events/EventViews";
 import type { Event as EventItem } from "./events/model";
 import { apiEnabled } from "@/api/session";
-import { ParticipantAvatar } from "./avatar/ParticipantAvatar";
 import { useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -157,10 +156,12 @@ export function EditProfile() {
   const [name, setName] = useState(state.name);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  function close() {
+    if (busy) return;
+    if (router.canGoBack()) router.back(); else router.replace('/profile');
+  }
   return (
-    <Flow title="Editar perfil">
-      <ParticipantAvatar height={200} />
-      <Copy muted>O personagem 3D é o mesmo para todos os participantes.</Copy>
+    <Sheet visible title="Editar perfil" avoidKeyboard onClose={close}>
       <Field
         label="Nome de exibição"
         value={name}
@@ -177,18 +178,17 @@ export function EditProfile() {
           try {
             if (apiEnabled) await api.saveProfile(name);
             else dispatch({ type: "patch", value: { name: name.trim() } });
-            router.back();
+            if (router.canGoBack()) router.back(); else router.replace('/profile');
           } catch (error) { setError(error instanceof Error ? error.message : 'Não foi possível salvar.'); }
           finally { setBusy(false); }
         }}
       />
-    </Flow>
+    </Sheet>
   );
 }
 export function Privacy() {
-  const { dispatch, api } = useMock();
+  const { api } = useMock();
   const router = useRouter();
-  const [confirm, setConfirm] = useState(false);
   const [revoke, setRevoke] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -209,35 +209,6 @@ export function Privacy() {
           }} />
         </>}
       </Card>}
-      <Button
-        secondary
-        title="Sair da conta"
-        onPress={() => setConfirm(!confirm)}
-      />
-      {confirm && (
-        <Card title="Sair do Bóra?">
-          <Copy>
-            Você precisará entrar novamente para continuar sua jornada.
-          </Copy>
-          <Button
-            title="Confirmar saída"
-            onPress={() =>
-              dispatch({
-                type: "patch",
-                value: {
-                  session: "signedOut",
-                  resumePath: null,
-                },
-              })
-            }
-          />
-          <Button
-            secondary
-            title="Continuar no app"
-            onPress={() => setConfirm(false)}
-          />
-        </Card>
-      )}
 
     </Flow>
   );

@@ -3,7 +3,7 @@
     "name": "Bóra",
     "slug": "bora-mobile",
     "scheme": "bora",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -11,7 +11,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "br.fiocruz.mobile.bora",
       "icon": "./assets/app-store/bora-icon-1024.png",
-      "buildNumber": "154",
+      "buildNumber": "155",
       "infoPlist": {
         "NSCameraUsageDescription": "O Bóra usa a câmera para ler o QR Code dos eventos e confirmar sua presença."
       }
@@ -28,7 +28,7 @@
       "permissions": [
         "android.permission.health.READ_EXERCISE"
       ],
-      "versionCode": 154
+      "versionCode": 155
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -65,7 +65,8 @@
         {
           "cameraPermission": "O Bóra usa a câmera para ler o QR Code dos eventos e confirmar sua presença.",
           "recordAudioAndroid": false,
-          "barcodeScannerEnabled": true
+          "barcodeScannerEnabled": true,
+          "microphonePermission": false
         }
       ],
       "./plugins/with-testflight-api",

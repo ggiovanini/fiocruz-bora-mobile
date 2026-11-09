@@ -22,7 +22,7 @@ npx expo run:android
 
 ## Identidade
 
-O identificador atual é `br.fiocruz.mobile.bora`, com versão 1.0.1 e versionCode 154. O identificador anterior, `br.fiocruz.boramobile`, representa outra instalação no Android; o sistema não migra seus dados locais automaticamente. Para próximos builds distribuídos, incremente `android.versionCode` em `app.json`.
+O identificador atual é `br.fiocruz.mobile.bora`, com versão 1.0.2 e versionCode 155. O identificador anterior, `br.fiocruz.boramobile`, representa outra instalação no Android; o sistema não migra seus dados locais automaticamente. Para próximos builds distribuídos, incremente `android.versionCode` em `app.json`.
 
 ## Configurações que precisam sobreviver ao prebuild
 

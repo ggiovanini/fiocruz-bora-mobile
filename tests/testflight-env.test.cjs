@@ -56,3 +56,24 @@ test('Android API plugin survives repeated prebuild and tracks release configura
   assert.match(source, /cliFile = file\("\$projectRoot\/scripts\/android-release-cli.cjs"\)/);
   assert.match(source, /inputs.files\(file\("\$projectRoot\/\.env.testflight"\)/);
 });
+
+test('iOS API plugin configures the real Xcode parser and remains idempotent', () => {
+  const vm = require('node:vm');
+  const project = require('xcode').project(path.resolve(__dirname, '../ios/Bra.xcodeproj/project.pbxproj'));
+  project.parseSync();
+  const phases = project.hash.project.objects.PBXShellScriptBuildPhase;
+  const bundle = Object.values(phases).find(phase => phase && typeof phase === 'object' && phase.name?.includes('Bundle React Native'));
+  assert.ok(bundle);
+  const injection = '\n# BORA_ARCHIVE_ENV\nsource "$PROJECT_ROOT/scripts/xcode-api-env.sh"\n';
+  bundle.shellScript = JSON.stringify(JSON.parse(bundle.shellScript).replace(injection, ''));
+  const sandbox = { module: { exports: {} }, require: () => ({ withXcodeProject: (config, action) => action(config) }) };
+  vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../plugins/with-testflight-api.js'), 'utf8'), sandbox);
+  const config = { modResults: project };
+  sandbox.module.exports(config);
+  assert.ok(JSON.parse(bundle.shellScript).includes(injection));
+  const once = bundle.shellScript;
+  sandbox.module.exports(config);
+  assert.equal(bundle.shellScript, once);
+  bundle.shellScript = JSON.stringify('unrecognized bundle command');
+  assert.throws(() => sandbox.module.exports(config), /Fase de bundle/);
+});

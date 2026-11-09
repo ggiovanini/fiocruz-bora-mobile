@@ -27,13 +27,18 @@ function LevelBadge({ level, progress, maximum = false }: { level: number; progr
   </View>;
 }
 
+/** Shared level and Vitality graphic for the profile and level overview. */
+export function LevelSummary({ vitality, level, progress, maximum = false }: { vitality: number; level: number | null; progress: number; maximum?: boolean }) {
+  return <View style={s.heroRow}>
+    {level !== null && <LevelBadge level={level} progress={progress} maximum={maximum} />}
+    <View style={s.vitality}><Text style={s.reserveLabel}>VITALIDADE</Text><Text adjustsFontSizeToFit numberOfLines={1} style={s.reserveValue}>{format(vitality)}<Text style={s.unit}> PV</Text></Text></View>
+  </View>;
+}
+
 type Level = NonNullable<EnergySummary['vitality']['level']>;
 function LevelOverview({ vitality, level }: { vitality: number; level: Level | null }) {
   return <View style={s.hero}>
-    <View style={s.heroRow}>
-      {level && <LevelBadge level={level.number} progress={level.progress_percent} maximum={!level.next}/>}
-      <View style={s.vitality}><Text style={s.reserveLabel}>VITALIDADE</Text><Text style={s.reserveValue}>{format(vitality)}<Text style={s.unit}> PV</Text></Text></View>
-    </View>
+    <LevelSummary vitality={vitality} level={level?.number ?? null} progress={level?.progress_percent ?? 0} maximum={!!level && !level.next} />
     {level ? level.name !== `Nível ${level.number}` && <Text style={s.heroTitle}>{level.name}</Text> : <Copy muted>Os níveis ainda não foram configurados.</Copy>}
     {level?.next ? <View style={s.milestone}>
       <Text style={s.eyebrow}>PRÓXIMO MARCO</Text>

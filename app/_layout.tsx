@@ -111,7 +111,7 @@ function Navigation() {
           "demo",
           "avatar-lab",
         ].map((name) => (
-          <Stack.Screen key={name} name={name} options={name === "goal" ? { presentation: "transparentModal", animation: "none", contentStyle: { backgroundColor: "transparent" } } : name === "edit-profile" ? { presentation: "modal" } : undefined} />
+          <Stack.Screen key={name} name={name} options={name === "goal" || name === "edit-profile" ? { presentation: "transparentModal", animation: "none", contentStyle: { backgroundColor: "transparent" } } : undefined} />
         ))}
       </Stack.Protected>
     </Stack><CelebrationPresenter /></></FirstPermissionSetup>
