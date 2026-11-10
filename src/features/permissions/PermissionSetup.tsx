@@ -12,12 +12,17 @@ import { hasAccess, useMock } from '@/mocks/MockProvider';
 import { useNotifications } from '@/notifications/NotificationProvider';
 import { finishPermissionExplanation, nextPermissionStep, readPermissionChoices, type PermissionChoices, type PermissionStep } from './introStorage';
 
+import { useHealth } from '@/health/HealthProvider';
+import { healthConnectionCopy } from '../health/connectionCopy';
+
 const copy = {
+  health: { ...healthConnectionCopy, button: 'Conectar e autorizar', icon: 'phone' as const },
   notifications: { title: 'Podemos dar um toque?', description: 'Permita as notificações para ver os avisos do Bóra neste aparelho.', detail: 'Por enquanto, os avisos aparecem com o app em uso. Suas mensagens também ficam guardadas na caixa de entrada.', button: 'Permitir notificações', icon: 'bell' as const },
   camera: { title: 'Bóra facilitar os encontros?', description: 'Com a câmera, você lê o QR Code dos eventos e confirma sua presença rapidinho.', detail: 'A câmera só abre quando você escolhe ler um código. Você também pode digitar o código do evento.', button: 'Permitir câmera', icon: 'qr' as const },
 };
 
 function Explanation({ step, onComplete }: { step: PermissionStep; onComplete: (choices: PermissionChoices) => void }) {
+  const health = useHealth();
   const inbox = useNotifications();
   const [permission, requestCamera] = useCameraPermissions();
   const [busy, setBusy] = useState(false);
@@ -33,6 +38,11 @@ function Explanation({ step, onComplete }: { step: PermissionStep; onComplete: (
       const choices = await finishPermissionExplanation(AsyncStorage, step);
       if (allow && Platform.OS !== 'web') {
         if (step === 'notifications') await inbox.enable(false);
+        else if (step === 'health') {
+          health.session.setAutomatic(true);
+          health.session.setAutomaticImport(true);
+          if (!health.state.connected) await health.session.connect();
+        }
         else if (!permission?.granted && permission?.canAskAgain !== false) await requestCamera();
       }
       if (mounted.current) onComplete(choices);
@@ -41,20 +51,24 @@ function Explanation({ step, onComplete }: { step: PermissionStep; onComplete: (
     } finally { inFlight.current = false; if (mounted.current) setBusy(false); }
   };
   const content = copy[step];
+  const actions = <>
+    {Platform.OS !== 'web' && <Button title={busy ? 'Só um instante…' : content.button} disabled={busy || (step === 'health' && !health.ready)} onPress={() => { void finish(true); }} />}
+      <Button secondary title={Platform.OS === 'web' ? 'Continuar' : 'Agora não'} disabled={busy} onPress={() => { void finish(false); }} />
+  </>;
   return <SafeAreaView style={s.safe}>
     <ScrollView contentContainerStyle={s.body}>
       <View style={s.brand}><Brand /></View>
-      <Text style={s.step}>{step === 'notifications' ? '1 de 2' : '2 de 2'}</Text>
+      <Text style={s.step}>{step === 'notifications' ? '1 de 3' : step === 'camera' ? '2 de 3' : '3 de 3'}</Text>
       <View style={s.icon}><Icon name={content.icon} size={48} color={colors.lime} /></View>
       <Text accessibilityRole="header" style={s.title}>{content.title}</Text>
       <Text style={s.description}>{content.description}</Text>
       <Text style={s.detail}>{content.detail}</Text>
-      <Text style={s.detail}>Você decide. Dá para mudar isso depois em Configurações → Permissões do aparelho.</Text>
+      <Text style={s.detail}>{step === 'health' ? healthConnectionCopy.control : 'Você decide. Dá para mudar isso depois em Configurações → Permissões do aparelho.'}</Text>
       {Platform.OS === 'web' && <Notice>Você pode ativar essas permissões no app instalado no celular. Por aqui, é só continuar.</Notice>}
       {!!error && <Notice>{error}</Notice>}
-      {Platform.OS !== 'web' && <Button title={busy ? 'Só um instante…' : content.button} disabled={busy} onPress={() => { void finish(true); }} />}
-      <Button secondary title={Platform.OS === 'web' ? 'Continuar' : 'Agora não'} disabled={busy} onPress={() => { void finish(false); }} />
+      {step !== 'health' && actions}
     </ScrollView>
+    {step === 'health' && <View style={s.footer}>{actions}</View>}
   </SafeAreaView>;
 }
 
@@ -84,6 +98,7 @@ export function FirstPermissionSetup({ children }: PropsWithChildren) {
 
 export default function DevicePermissions() {
   const router=useRouter();
+  const health = useHealth();
   const inbox = useNotifications();
   const [camera, requestCamera, refreshCamera] = useCameraPermissions();
   const [busy, setBusy] = useState(false);
@@ -111,12 +126,14 @@ export default function DevicePermissions() {
       <Copy muted>{camera?.granted ? 'Câmera permitida.' : 'A câmera ainda não está permitida.'}</Copy>
       {Platform.OS !== 'web' ? <Button secondary title={camera?.granted || camera?.canAskAgain === false ? 'Abrir ajustes da câmera' : 'Permitir câmera'} disabled={busy} onPress={() => { void cameraAction(); }} /> : <Copy muted>Disponível no app instalado no celular.</Copy>}
     </Card>
+    <Card title="Treinos do dispositivo"><Copy>{healthConnectionCopy.description}</Copy><Copy muted>{health.state.connected ? 'Dispositivo conectado.' : 'Você pode conectar seus treinos quando quiser.'}</Copy><Button secondary title="Conexão de treinos" onPress={()=>router.push('/health-settings')}/></Card>
     {!!error && <Notice>{error}</Notice>}
   </Flow>;
 }
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   body: { flexGrow: 1, width: '100%', maxWidth: 480, alignSelf: 'center', padding: 28, justifyContent: 'center', gap: 24 },
+  footer: { width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 28, paddingTop: 12, paddingBottom: 16, gap: 12 },
   brand: { alignItems: 'center', marginBottom: 8 }, step: { textAlign: 'center', fontFamily: 'Montserrat_500Medium', fontSize: 11, color: colors.muted },
   icon: { width: 110, height: 110, borderRadius: 36, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', backgroundColor: colors.surface },
   title: { color: colors.text, fontFamily: 'Montserrat_700Bold', fontSize: 28, lineHeight: 37, textAlign: 'center' },

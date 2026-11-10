@@ -10,6 +10,5 @@ export default function HealthWorkoutImport({workout}:{workout:HealthWorkout}) {
  return <WorkoutImportView workout={workout} entry={imports.statuses[workout.id]} items={api.data.catalog}
   membershipLabel={state.membershipId==='personal' ? 'Jornada pessoal' : api.data.memberships.find(m=>m.id===state.membershipId)?.organization_name ?? 'Selecione um vínculo'}
   available={apiEnabled} canSend={!!state.membershipId} consentGranted={api.data.consent?.status==='granted'}
-  sharedDemo={api.data.profile?.email?.toLowerCase().endsWith('@bora.example') ?? false}
   onSend={(type,dimension)=>imports.submit(workout,type,dimension)}/>;
 }

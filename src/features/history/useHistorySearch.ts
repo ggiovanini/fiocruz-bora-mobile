@@ -32,5 +32,5 @@ export function useHistorySearch(query:string,userId?:string) {
     if(query){void load(true);}else{setItems([]);setError('');setBusy(false);next.current=null;}
     return ()=>{generation.current++;inFlight.current=false;};
   },[load,query]));
-  return {items,busy,error,more:!!next.current,refresh:()=>{void load(true);},loadMore:()=>{void load(false);}};
+  return {items,busy,error,more:!!next.current,refresh:()=>load(true),loadMore:()=>{void load(false);}};
 }

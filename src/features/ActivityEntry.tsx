@@ -33,6 +33,7 @@ export default function ActivityEntry() {
   const visible = options.filter(item => supportsEnergy(item, kind) && item.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(query));
   useEffect(() => { if (initialKind) { setKind(initialKind); setStep('activity'); setSearch(''); } }, [initialKind]);
   function close() { if (router.canGoBack()) router.back(); else router.replace('/home'); }
+  function cancel() { dispatch({ type: 'draft', value: null }); close(); }
   const back = useCallback(() => {
     setError('');
     if (step === 'kind') { if (router.canGoBack()) router.back(); else router.replace('/home'); }
@@ -53,12 +54,12 @@ export default function ActivityEntry() {
     router.push('/review');
   }
   const titles: Record<Step,string> = { kind:'Qual atividade você fez?', activity:kind === 'physical' ? 'Atividade física' : 'Atividade mental', name:'Qual foi a atividade?', duration:'Quanto tempo?', when:'Quando aconteceu?' };
-  return <ActivityStepScreen title={titles[step]} step={step === 'kind' ? 1 : step === 'activity' || step === 'name' ? 2 : step === 'duration' ? 3 : 4} onBack={back} onClose={close}>
+  return <ActivityStepScreen title={titles[step]} step={step === 'kind' ? 1 : step === 'activity' || step === 'name' ? 2 : step === 'duration' ? 3 : 4} onBack={back} onClose={close} footer={<Button secondary title="Cancelar" onPress={cancel}/>}>
     {step === 'kind' && <>
       {(['physical','intellectual'] as const).map(value=><Pressable key={value} accessibilityRole="button" onPress={()=>{setKind(value);setSearch('');setError('');setStep('activity');}} style={s.choice}><Icon name={value==='physical'?'activity':'book'} size={26} color={value==='physical'?colors.lime:colors.primary}/><Text style={s.label}>{value==='physical'?'Física':'Mental'}</Text><Icon name="arrow"/></Pressable>)}
       {draft?.type && resumeKind && <Button secondary title="Continuar registro" onPress={()=>{setKind(resumeKind);update({energyDimension:resumeKind});setStep('duration');}}/>}
       <View style={{flex:1,justifyContent:'flex-end',minHeight:140}}><BeanImage size={Math.min(240,height*.29)}/></View>
-      <View style={{flexDirection:'row',gap:12}}><Pressable accessibilityRole="button" accessibilityLabel="Importar treinos do aparelho" onPress={()=>router.push('/health')} style={[s.choice,{flex:1,minHeight:54,padding:12}]}><Icon name="phone"/><Text style={[s.hint,{color:colors.text}]}>Importar</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Registrar presença em evento" onPress={()=>router.push('/events')} style={[s.choice,{flex:1,minHeight:54,padding:12}]}><Icon name="qr"/><Text style={[s.hint,{color:colors.text}]}>Evento</Text></Pressable></View>
+      <View style={{flexDirection:'row',gap:12}}><Pressable accessibilityRole="button" accessibilityLabel="Registrar presença em evento" onPress={()=>router.push('/events')} style={[s.choice,{flex:1,minHeight:54,padding:12}]}><Icon name="qr"/><Text style={[s.hint,{color:colors.text}]}>Evento</Text></Pressable></View>
     </>}
     {step === 'activity' && <>
       <Field label="Buscar atividade" value={search} onChangeText={setSearch} placeholder="O que você fez?"/>

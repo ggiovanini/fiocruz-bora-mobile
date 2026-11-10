@@ -16,12 +16,16 @@ export function historyStatus(activity:Activity,live:boolean) {
 }
 function earned(activity:Activity,live:boolean) {return live && activity.status==='confirmed' && activity.validationStatus==='approved' && activity.awardedEv!=null;}
 export function HistoryCard({activity,live,onPress}:{activity:Activity;live:boolean;onPress:()=>void}) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={`${activityTitle(activity)}. ${activity.minutes} minutos. ${activityDate(activity.date)}. ${historyStatus(activity,live)}. Ver detalhes.`} onPress={onPress} style={({pressed})=>[s.card,pressed&&{opacity:.75}]}>
-    <View style={s.icon}><Icon name={activity.energyDimension==='intellectual' ? 'book' : 'activity'} size={24}/></View>
-    <View style={s.main}><Text style={s.title} numberOfLines={2}>{activityTitle(activity)}</Text><Text style={s.meta}>{activityDate(activity.date)} · {activity.minutes} min</Text><Text style={[s.status,activity.status==='failed'&&s.failure]}>{historyStatus(activity,live)}</Text></View>
-    <View style={s.trailing}>{earned(activity,live) && <Text style={s.ev}>{activity.awardedEv} EV</Text>}<Icon name="arrow" size={18}/></View>
+  return <ActivityListCard title={activityTitle(activity)} date={activity.date} minutes={activity.minutes} status={historyStatus(activity,live)} origin={['apple_health','health_connect'].includes(activity.source ?? '') ? 'device' : !activity.source || activity.source==='manual' ? 'manual' : undefined} mental={activity.energyDimension==='intellectual'} failed={activity.status==='failed'} ev={earned(activity,live) ? activity.awardedEv : undefined} onPress={onPress}/>;
+}
+export function ActivityListCard({title,date,minutes,status,mental=false,failed=false,ev,origin,onPress}:{title:string;date:string;minutes:string;status:string;mental?:boolean;failed?:boolean;ev?:number|null;origin?:'device'|'manual';onPress:()=>void}) {
+  return <Pressable accessibilityRole="button" accessibilityLabel={`${title}. ${minutes} minutos. ${activityDate(date)}. ${status}. ${origin==='device' ? 'Dispositivo.' : origin==='manual' ? 'Manual.' : ''} Ver detalhes.`} onPress={onPress} style={({pressed})=>[s.card,pressed&&{opacity:.75}]}>
+    <View style={s.icon}><Icon name={mental ? 'book' : 'activity'} size={24}/></View>
+    <View style={s.main}><Text style={s.title} numberOfLines={2}>{title}</Text><Text style={s.meta}>{activityDate(date)} · {minutes} min</Text><View style={s.badgeRow}>{origin && <View style={s.badge}><Icon name={origin==='device' ? 'phone' : 'edit'} size={12} color={colors.muted}/><Text style={s.badgeText}>{origin==='device' ? 'Dispositivo' : 'Manual'}</Text></View>}<Text style={[s.status,failed&&s.failure]}>{status}</Text></View></View>
+    <View style={s.trailing}>{ev!=null && <Text style={s.ev}>{ev} EV</Text>}<Icon name="arrow" size={18}/></View>
   </Pressable>;
 }
+
 export function HistoryDetail({activity,live,offline,busy,canRetry,error,onClose,onRetry}:{activity?:Activity;live:boolean;offline:boolean;busy:boolean;canRetry:boolean;error?:string;onClose:()=>void;onRetry:()=>void}) {
   const source=activity?.source==='manual' ? 'Registro manual' : activity?.source==='apple_health' ? 'Saúde da Apple' : activity?.source==='health_connect' ? 'Health Connect' : null;
   return <Sheet visible={!!activity} title={activity ? activityTitle(activity) : 'Registro'} onClose={onClose}>
@@ -41,6 +45,7 @@ export function HistoryDetail({activity,live,offline,busy,canRetry,error,onClose
   </Sheet>;
 }
 const s=StyleSheet.create({
+  badgeRow:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',gap:8},badge:{flexDirection:'row',alignItems:'center',gap:4,alignSelf:'flex-start',paddingHorizontal:7,paddingVertical:4,borderRadius:8,backgroundColor:colors.accent},badgeText:{color:colors.muted,fontFamily:'Montserrat_500Medium',fontSize:9},
   card:{flexDirection:'row',alignItems:'center',gap:12,padding:16,borderRadius:18,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},
   icon:{width:40,height:40,alignItems:'center',justifyContent:'center',borderRadius:14,backgroundColor:colors.accent},
   main:{flex:1,minWidth:0,gap:5},title:{color:colors.text,fontFamily:'Montserrat_600SemiBold',fontSize:15,lineHeight:21},meta:{color:colors.muted,fontFamily:'Montserrat_400Regular',fontSize:11,lineHeight:17},status:{color:colors.primary,fontFamily:'Montserrat_500Medium',fontSize:10,lineHeight:16},failure:{color:'#FFB3BD'},trailing:{alignItems:'flex-end',gap:10},ev:{color:colors.lime,fontFamily:'Montserrat_600SemiBold',fontSize:12},detailStatus:{color:colors.primary,fontFamily:'Montserrat_600SemiBold',fontSize:13},points:{color:colors.lime,fontFamily:'Montserrat_700Bold',fontSize:28},

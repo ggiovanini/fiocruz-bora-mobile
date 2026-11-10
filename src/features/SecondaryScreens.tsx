@@ -4,6 +4,7 @@ import { ArticleCard } from "./knowledge/KnowledgeViews";
 import { Sheet } from "@/ui/Sheet";
 import { ListScreen } from "@/ui/ListScreen";
 import { EventCard, EventDetail } from "./events/EventViews";
+import { EventTabs, eventEmptyCopy, type EventTab } from "./events/EventTabs";
 import type { Event as EventItem } from "./events/model";
 import { apiEnabled } from "@/api/session";
 import { useState } from "react";
@@ -60,6 +61,7 @@ function previewEvent(checkedIn: boolean): EventItem {
   return { id:pilotEvent.id,title:pilotEvent.title,description:'Encontro de demonstração do Bóra.',location:pilotEvent.where,qr_instructions:'Use a simulação de QR Code para experimentar o registro de presença.',starts_at:null,ends_at:null,active:true,checked_in:checkedIn };
 }
 function PreviewEvents() {
+  const [tab,setTab]=useState<EventTab>('upcoming');
   const router = useRouter();
   const { state } = useMock();
   const [search,setSearch] = useState('');
@@ -68,7 +70,8 @@ function PreviewEvents() {
   const event = previewEvent(state.checkins.includes(pilotEvent.id));
   const matches = [event.title,event.description,event.location].some(value=>value.toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR')));
   return <ListScreen title="Eventos" icon="calendar" search={{value:search,onChangeText:setSearch,onSubmit:()=>setQuery(search.trim()),activeQuery:query,onClear:()=>{setSearch('');setQuery('');},placeholder:'Nome, descrição ou local'}}>
-    {matches ? <EventCard event={event} onPress={()=>setDetailOpen(true)}/> : <Card title="Nenhum evento encontrado"><Copy>Tente outro termo ou limpe a busca.</Copy></Card>}
+    <EventTabs value={tab} onChange={value=>{setTab(value);setDetailOpen(false);}}/>
+    {(tab==='ended' || (tab==='attended' && !event.checked_in)) ? <Card title={eventEmptyCopy[tab].title}><Copy>{eventEmptyCopy[tab].body}</Copy></Card> : matches ? <EventCard event={event} onPress={()=>setDetailOpen(true)}/> : <Card title="Nenhum evento encontrado"><Copy>Tente outro termo ou limpe a busca.</Copy></Card>}
     <EventDetail event={detailOpen ? event : undefined} onClose={()=>setDetailOpen(false)} illustrative onCheckIn={()=>{setDetailOpen(false);router.push('/qr');}} onMedals={()=>{setDetailOpen(false);router.push('/medals');}}/>
   </ListScreen>;
 }

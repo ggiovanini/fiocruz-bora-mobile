@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type PropsWithChildren } from 'react';
 import { Keyboard, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AppHeader } from '@/components/AppHeader';
+import { AppHeader, APP_HEADER_HEIGHT, useHeaderScroll } from '@/components/AppHeader';
 import { Icon, type IconName } from '@/design/Icon';
 import { colors } from '@/design/tokens';
 import { apiEnabled } from '@/api/session';
@@ -20,6 +20,7 @@ export type ListSearch = {
 /** A list title that compacts first, then leaves with the content. Search is opt-in. */
 export function ListScreen({ title, icon, search, back = true, children }: PropsWithChildren<{ title: string; icon?: IconName; search?: ListSearch; back?: boolean }>) {
   const { state, storageError, api } = useMock();
+  const headerScroll = useHeaderScroll();
   const [searchOpen, setSearchOpen] = useState(false);
   const scroll = useRef<ScrollView>(null);
   const input = useRef<TextInput>(null);
@@ -47,9 +48,9 @@ export function ListScreen({ title, icon, search, back = true, children }: Props
     setSearchOpen(false);
   }
   return <SafeAreaView edges={['top','left','right']} style={s.safe}>
-    <AppHeader back={back}/>
+    <AppHeader back={back} scrollY={headerScroll.scrollY}/>
     <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets scrollEventThrottle={16}
-      onScroll={event => setCollapse(Math.max(0,Math.min(64,event.nativeEvent.contentOffset.y)))} contentContainerStyle={s.body}>
+      onScroll={event => { headerScroll.onScroll(event); setCollapse(Math.max(0,Math.min(64,event.nativeEvent.contentOffset.y))); }} contentContainerStyle={s.body}>
       <View collapsable={false} style={[s.heading,{paddingVertical:18-12*ratio,transform:[{translateY:collapse}]}]}>
         <View style={s.titleRow}>
           {icon && <Icon name={icon} size={26}/>}
@@ -72,4 +73,4 @@ export function ListScreen({ title, icon, search, back = true, children }: Props
     </ScrollView>
   </SafeAreaView>;
 }
-const s=StyleSheet.create({safe:{flex:1,backgroundColor:colors.background},body:{width:'100%',maxWidth:520,alignSelf:'center',paddingHorizontal:24,paddingBottom:40,gap:16},heading:{paddingVertical:12,zIndex:2,backgroundColor:colors.background,marginHorizontal:-24,paddingHorizontal:24},titleRow:{flexDirection:'row',alignItems:'center',gap:12},titleBox:{flex:1,minWidth:0},title:{fontSize:27,lineHeight:35,color:colors.text,fontFamily:'Montserrat_700Bold'},hit:{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center',borderRadius:14},selected:{backgroundColor:colors.surface},dot:{position:'absolute',top:7,right:6,width:5,height:5,borderRadius:3,backgroundColor:colors.lime},searchPanel:{marginTop:22,padding:12,borderRadius:20,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},searchRow:{flexDirection:'row',alignItems:'center',gap:8},input:{flex:1,minWidth:0,minHeight:54,paddingHorizontal:4,color:colors.text,fontSize:16,fontFamily:'Montserrat_400Regular'},clear:{minHeight:44,justifyContent:'center',alignItems:'flex-start'},clearText:{color:colors.primary,fontSize:12,fontFamily:'Montserrat_500Medium'},filter:{marginTop:12,flexDirection:'row',alignItems:'center',borderRadius:14,backgroundColor:colors.surface,paddingLeft:12},filterTerm:{flex:1,minHeight:44,flexDirection:'row',alignItems:'center',gap:8},filterText:{flex:1,color:colors.text,fontSize:12,fontFamily:'Montserrat_500Medium'}});
+const s=StyleSheet.create({safe:{flex:1,backgroundColor:colors.background},body:{width:'100%',maxWidth:520,alignSelf:'center',paddingHorizontal:24,paddingTop:APP_HEADER_HEIGHT,paddingBottom:40,gap:16},heading:{paddingVertical:12,zIndex:2,backgroundColor:colors.background,marginHorizontal:-24,paddingHorizontal:24},titleRow:{flexDirection:'row',alignItems:'center',gap:12},titleBox:{flex:1,minWidth:0},title:{fontSize:27,lineHeight:35,color:colors.text,fontFamily:'Montserrat_700Bold'},hit:{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center',borderRadius:14},selected:{backgroundColor:colors.surface},dot:{position:'absolute',top:7,right:6,width:5,height:5,borderRadius:3,backgroundColor:colors.lime},searchPanel:{marginTop:22,padding:12,borderRadius:20,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},searchRow:{flexDirection:'row',alignItems:'center',gap:8},input:{flex:1,minWidth:0,minHeight:54,paddingHorizontal:4,color:colors.text,fontSize:16,fontFamily:'Montserrat_400Regular'},clear:{minHeight:44,justifyContent:'center',alignItems:'flex-start'},clearText:{color:colors.primary,fontSize:12,fontFamily:'Montserrat_500Medium'},filter:{marginTop:12,flexDirection:'row',alignItems:'center',borderRadius:14,backgroundColor:colors.surface,paddingLeft:12},filterTerm:{flex:1,minHeight:44,flexDirection:'row',alignItems:'center',gap:8},filterText:{flex:1,color:colors.text,fontSize:12,fontFamily:'Montserrat_500Medium'}});

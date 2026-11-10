@@ -1,16 +1,15 @@
+import { ActivityListCard } from '../history/HistoryViews';
 import {useState} from 'react';
-import {Pressable, Text, View} from 'react-native';
+import {View} from 'react-native';
 import {Button,Card,Check,Copy,Notice} from '@/ui/Flow';
 import {Sheet} from '@/ui/Sheet';
-import {Icon} from '@/design/Icon';
-import {colors} from '@/design/tokens';
 import {Chip} from '@/components/ActivityUI';
 import type {CatalogItem} from '@/api/contracts';
 import {workoutActivityCode,type ImportStatus} from '@/health/importQueue';
 import type {HealthWorkout} from '@/health/model';
 
-export function WorkoutImportView({workout,entry,items,membershipLabel,canSend,consentGranted,available=true,sharedDemo=false,illustrative=false,onSend}:{
- workout:HealthWorkout;entry?:ImportStatus;items:CatalogItem[];membershipLabel:string;canSend:boolean;consentGranted:boolean;available?:boolean;sharedDemo?:boolean;illustrative?:boolean;onSend:(type:string,dimension?:'physical'|'intellectual')=>Promise<void>;
+export function WorkoutImportView({workout,entry,items,membershipLabel,canSend,consentGranted,available=true,illustrative=false,onSend}:{
+ workout:HealthWorkout;entry?:ImportStatus;items:CatalogItem[];membershipLabel:string;canSend:boolean;consentGranted:boolean;available?:boolean;illustrative?:boolean;onSend:(type:string,dimension?:'physical'|'intellectual')=>Promise<void>;
 }) {
  const imported=entry?.status==='imported';
  const result=entry?.awardedEv;
@@ -33,7 +32,6 @@ export function WorkoutImportView({workout,entry,items,membershipLabel,canSend,c
   <Copy muted>Origem no aparelho: {workout.origin}</Copy>
   {imported ? <Notice>Treino confirmado na jornada{result!=null ? ` · ${result} EV` : '. Pontuação ainda não configurada'}. Reenvios do mesmo treino não concedem pontos novamente.</Notice> : available ? <>
    <Copy>Registrar em: {membershipLabel}</Copy>
-   {sharedDemo && <Notice>Perfil de demonstração compartilhado entre testers. Use treinos de teste; os registros enviados ficam salvos neste perfil para testar a jornada.</Notice>}
    <Copy muted>Confira a atividade correspondente:</Copy>
    <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>{catalog.map(t=><Chip key={t.code} label={t.name} selected={type===t.code} onPress={()=>{if(!busy){setType(t.code);setDimension(undefined);setConfirmed(false);}}}/>)}</View>
    {chosen?.energy_dimension==='choice' && <View style={{flexDirection:'row',gap:8}}><Chip label="Física" selected={dimension==='physical'} onPress={()=>{if(!busy)setDimension('physical');}}/><Chip label="Mental" selected={dimension==='intellectual'} onPress={()=>{if(!busy)setDimension('intellectual');}}/></View>}
@@ -44,10 +42,7 @@ export function WorkoutImportView({workout,entry,items,membershipLabel,canSend,c
   {!!(error || entry?.message) && <Notice>{error || entry?.message}</Notice>}
  </Card>;
  return <>
-  <Pressable accessibilityRole="button" accessibilityLabel={`${workout.kind}, ${Math.round(workout.durationMinutes*10)/10} minutos. ${imported ? 'Treino confirmado.' : 'Ver treino e importar.'}`} onPress={()=>setDetailsOpen(true)} style={({pressed})=>({padding:16,borderRadius:16,backgroundColor:colors.surface,flexDirection:'row',alignItems:'center',gap:12,opacity:pressed ? .7 : 1})}>
-   <Icon name={imported?'check':entry?.status==='sending'?'clock':'activity'} color={colors.lime}/>
-   <View style={{flex:1,gap:5}}><Text style={{color:colors.text,fontFamily:'Montserrat_600SemiBold',fontSize:15}}>{workout.kind}</Text><Text style={{color:colors.muted,fontSize:12}}>{new Date(workout.start).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})} · {Math.round(workout.durationMinutes*10)/10} min</Text>{!imported && entry && <Text style={{color:colors.muted,fontSize:12}}>{entry.status==='sending'?'Enviando…':entry.status==='review'?'Revisar treino':'Falha no envio · tente novamente'}</Text>}{imported&&<Text style={{color:colors.lime,fontSize:12}}>Confirmado{result!=null ? ` · ${result} EV` : ''}</Text>}</View><Icon name="arrow" size={18}/>
-  </Pressable>
+  <ActivityListCard origin="device" title={workout.kind} date={new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(workout.start))} minutes={String(Math.round(workout.durationMinutes*10)/10)} status={imported ? 'Registrada' : entry?.status==='sending' ? 'Enviando' : entry?.status==='failed' ? 'Falha no envio' : entry?.status==='review' ? 'Revisar treino' : 'Disponível para importar'} failed={entry?.status==='failed'} ev={imported ? result : undefined} onPress={()=>setDetailsOpen(true)}/>
   <Sheet visible={detailsOpen} title="Detalhe do treino" onClose={()=>setDetailsOpen(false)}>{illustrative && <Notice>Simulação. Nenhum dado é enviado.</Notice>}{detail}</Sheet>
  </>;
 }

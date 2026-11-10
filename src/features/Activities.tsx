@@ -100,6 +100,11 @@ export function Review() {
         />
       </Flow>
     );
+  function cancel() {
+    if (submission.current) return;
+    dispatch({ type: 'draft', value: null });
+    router.dismissTo('/history');
+  }
   const mission = missions.find((m) => m.id === d.missionId);
   async function submit() {
     if (!d || submission.current) return;
@@ -126,7 +131,7 @@ export function Review() {
     router.replace({ pathname: "/activity-result", params: { id: d.id, celebrate: '1', dimension: d.energyDimension ?? 'physical' } });
   }
   return <ActivityStepScreen title="Tudo certo?" step={5} onBack={() => router.back()} onClose={() => router.replace('/home')}
-    footer={<><Button title={state.offline ? "Salvar para enviar depois" : "Confirmar atividade"} busy={submitted} disabled={submitted} onPress={() => { void submit(); }}/>{!!error && <Notice>{error}</Notice>}</>}>
+    footer={<><Button title={state.offline ? "Salvar para enviar depois" : "Confirmar atividade"} busy={submitted} disabled={submitted} onPress={() => { void submit(); }}/><Button secondary title="Cancelar" disabled={submitted} onPress={cancel}/>{!!error && <Notice>{error}</Notice>}</>}>
     <Card title={activityTitle(d)}>
       <Copy>{d.energyDimension === 'intellectual' ? 'Atividade mental' : d.energyDimension === 'physical' ? 'Atividade física' : 'Atividade'}</Copy>
       <Copy>{d.minutes} minutos</Copy>

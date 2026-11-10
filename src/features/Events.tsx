@@ -11,25 +11,31 @@ import { ListScreen } from '@/ui/ListScreen';
 import { Icon } from '@/design/Icon';
 import { colors } from '@/design/tokens';
 import { EventCard, EventDetail } from './events/EventViews';
+import { EventTabs, eventEmptyCopy, type EventTab } from './events/EventTabs';
 import type { Event } from './events/model';
 export function LiveEvents() {
   const { state } = useMock();
   return <InstitutionalAccess title="Eventos"><OrganizationEvents key={state.membershipId}/></InstitutionalAccess>;
 }
 function OrganizationEvents() {
+  const [tab,setTab]=useState<EventTab>('upcoming');
+  return <EventList key={tab} tab={tab} onTabChange={setTab}/>;
+}
+function EventList({tab,onTabChange}:{tab:EventTab;onTabChange:(tab:EventTab)=>void}) {
   const { state } = useMock();
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { items, metadata, busy, error, more, refresh, loadMore } = usePagedResource<Event, { total: number }>(`/memberships/${state.membershipId}/events${query ? `?q=${encodeURIComponent(query)}` : ''}`);
+  const { items, metadata, busy, error, more, refresh, loadMore } = usePagedResource<Event, { total: number }>(`/memberships/${state.membershipId}/events?tab=${tab}${query ? `&q=${encodeURIComponent(query)}` : ''}`);
   const selected = items.find(event => event.id === selectedId);
   return <ListScreen title="Eventos" icon="calendar" search={{ value:search,onChangeText:setSearch,onSubmit:()=>{setSelectedId(null);setQuery(search.trim());},activeQuery:query,onClear:()=>{setSelectedId(null);setSearch('');setQuery('');},placeholder:'Nome, descrição ou local' }}>
     <View style={s.toolbar}><Pressable accessibilityRole="button" accessibilityLabel="Atualizar eventos" accessibilityState={{ disabled:busy,busy }} disabled={busy} onPress={refresh} style={[s.action,busy&&{opacity:.5}]}><Icon name="clock" size={20}/><Text style={s.label}>Atualizar</Text></Pressable></View>
+    <EventTabs value={tab} onChange={onTabChange}/>
     {!!metadata?.total && <Copy muted>{items.length} de {metadata.total} {metadata.total === 1 ? 'evento' : 'eventos'}{query ? metadata.total === 1 ? ' encontrado' : ' encontrados' : ''}</Copy>}
     {!!error && <><Notice>{error}</Notice><Button secondary title="Tentar novamente" disabled={busy} onPress={refresh}/></>}
     {busy && <Copy muted>Carregando eventos…</Copy>}
-    {!busy && !error && !items.length && <Card title={query ? 'Nenhum evento encontrado' : 'Novos encontros vêm aí'}><Copy>{query ? 'Tente outro termo ou limpe a busca.' : 'Nenhum evento publicado para sua organização no momento.'}</Copy></Card>}
+    {!busy && !error && !items.length && <Card title={query ? 'Nenhum evento encontrado' : eventEmptyCopy[tab].title}><Copy>{query ? 'Tente outro termo ou limpe a busca.' : eventEmptyCopy[tab].body}</Copy></Card>}
     {items.map(event => <EventCard key={event.id} event={event} onPress={() => setSelectedId(event.id)}/>)}
     {more && <Button secondary title="Carregar mais eventos" disabled={busy} onPress={loadMore}/>}
     <EventDetail event={selected} onClose={()=>setSelectedId(null)} onCheckIn={()=>{

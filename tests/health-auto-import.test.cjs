@@ -58,7 +58,13 @@ test('invalid durations never reach the server and old preferences never authori
  let sent=0;const queue=new HealthImportQueue(async()=>{sent++;return ok();});
  await queue.automatic([{...workout(),durationMinutes:0}],catalog,'one',()=>true);assert.equal(sent,0);assert.equal(queue.getSnapshot()['healthkit:one'].status,'review');
  const {HealthSession}=load('src/health/model.ts');const session=new HealthSession({});
+ assert.equal(session.getSnapshot().connected,false);
+ assert.equal(session.getSnapshot().automatic,true);
+ assert.equal(session.getSnapshot().automaticImport,true);
  session.restorePreferences({connected:true,automatic:true});assert.equal(session.getSnapshot().automaticImport,false);
+ session.restorePreferences({connected:true,automatic:false,automaticImport:false});
+ assert.equal(session.getSnapshot().automatic,false);
+ assert.equal(session.getSnapshot().automaticImport,false);
  session.setAutomaticImport(true);assert.equal(session.getSnapshot().automaticImport,true);
  session.disconnect();assert.equal(session.getSnapshot().automaticImport,false);
 });

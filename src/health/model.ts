@@ -102,7 +102,7 @@ export type HealthState = {
 };
 const empty = (): HealthState => ({
   automatic: true,
-  automaticImport: false,
+  automaticImport: true,
   connected: false,
   busy: false,
   snapshot: null,
@@ -137,7 +137,7 @@ export class HealthSession {
     this.publish({
       connected: preferences.connected,
       automatic: preferences.automatic,
-      automaticImport: preferences.automaticImport===true,
+      automaticImport: preferences.automaticImport === true,
     });
   };
   setAutomaticImport = (automaticImport: boolean) => { this.publish({automaticImport}); };
@@ -159,7 +159,7 @@ export class HealthSession {
   disconnect = () => {
     this.lastAttempt = null;
     this.generation++;
-    this.value = empty();
+    this.value = { ...empty(), automaticImport: false };
     this.listeners.forEach((fn) => fn());
   };
   clearReadings = () => {
@@ -182,7 +182,7 @@ export class HealthSession {
           message:
             availability === "update-required"
               ? "Instale ou atualize o Health Connect neste aparelho."
-              : "Integração indisponível neste ambiente. Use um build nativo em aparelho compatível.",
+              : "A conexão de treinos não está disponível neste dispositivo.",
         });
         return;
       }
@@ -193,14 +193,14 @@ export class HealthSession {
       this.publish({
         connected,
         message: connected
-          ? "Solicitação concluída. Sincronize para consultar os dados que o sistema disponibilizar."
+          ? ""
           : "Nenhuma permissão de leitura concedida. Você pode continuar com o registro manual.",
       });
     } catch {
       if (generation === this.generation)
         this.publish({
           message:
-            "Não foi possível solicitar acesso. Confira as permissões e se o aplicativo foi recompilado com a integração nativa.",
+            "Não foi possível conectar. Confira as permissões do dispositivo e tente novamente.",
         });
     } finally {
       if (generation === this.generation) this.publish({ busy: false });
@@ -228,7 +228,7 @@ export class HealthSession {
       this.publish({
         snapshot: { ...snapshot, workouts: uniqueWorkouts(snapshot.workouts) },
         message:
-          "Leitura concluída. Os treinos estão disponíveis para registro na jornada.",
+          "",
       });
     } catch {
       if (generation === this.generation)
