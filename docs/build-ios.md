@@ -80,3 +80,10 @@ Validação da correção: `npm run ios -- --no-build-cache --no-bundler --devic
 Versão sincronizada em app.json, package.json e projetos nativos; Android usa versionCode 155. Prebuild deve usar `npx expo prebuild --no-clean --no-install` para preservar ajustes nativos existentes. O plugin de API de TestFlight agora acessa a seção PBXShellScriptBuildPhase pelo objeto do projeto, compatível com o parser xcode instalado, com teste de reaplicação. O `.nvmrc` fixa Node 20.19.4.
 
 Após instalar os Pods, abrir `ios/Bra.xcworkspace` e gerar um novo Archive Release para Validate App / Distribute App. A publicação no App Store Connect é manual; esta preparação não envia o aplicativo à Apple. As mudanças da área Equipes exigem também publicar a API atualizada (filtros de busca e participação).
+
+
+## Preparação da versão 1.0.2 · build 156 · 10/11/2026
+
+Build iOS incrementado para 156 em app.json, Info.plist e configurações Debug/Release do projeto Xcode. A versão do projeto foi alinhada a 1.0.2, já usada no aplicativo. Prebuild iOS concluído com `npx expo prebuild --platform ios --no-clean --no-install`, preservando os arquivos nativos existentes. Android permanece no versionCode 155.
+
+Abrir `ios/Bra.xcworkspace` para gerar o Archive e enviar pelo Xcode. Esta preparação não gera Archive nem envia o aplicativo à Apple. Inclui a formatação das durações de treino com no máximo uma casa decimal e vírgula em português, sem alterar os valores de origem ou o cálculo de EV.

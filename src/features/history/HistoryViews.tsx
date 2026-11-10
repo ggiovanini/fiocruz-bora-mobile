@@ -5,6 +5,9 @@ import { colors } from '@/design/tokens';
 import { Button, Card, Copy, Notice } from '@/ui/Flow';
 import { Sheet } from '@/ui/Sheet';
 
+const minutesFormat = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
+export const activityMinutes = (value: string | number) => minutesFormat.format(Number(value));
+
 export const activityDate=(value:string)=>value.split('-').reverse().join('/');
 export function historyStatus(activity:Activity,live:boolean) {
   if(activity.status==='pending')return 'Aguardando envio';
@@ -19,9 +22,9 @@ export function HistoryCard({activity,live,onPress}:{activity:Activity;live:bool
   return <ActivityListCard title={activityTitle(activity)} date={activity.date} minutes={activity.minutes} status={historyStatus(activity,live)} origin={['apple_health','health_connect'].includes(activity.source ?? '') ? 'device' : !activity.source || activity.source==='manual' ? 'manual' : undefined} mental={activity.energyDimension==='intellectual'} failed={activity.status==='failed'} ev={earned(activity,live) ? activity.awardedEv : undefined} onPress={onPress}/>;
 }
 export function ActivityListCard({title,date,minutes,status,mental=false,failed=false,ev,origin,onPress}:{title:string;date:string;minutes:string;status:string;mental?:boolean;failed?:boolean;ev?:number|null;origin?:'device'|'manual';onPress:()=>void}) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={`${title}. ${minutes} minutos. ${activityDate(date)}. ${status}. ${origin==='device' ? 'Dispositivo.' : origin==='manual' ? 'Manual.' : ''} Ver detalhes.`} onPress={onPress} style={({pressed})=>[s.card,pressed&&{opacity:.75}]}>
+  return <Pressable accessibilityRole="button" accessibilityLabel={`${title}. ${activityMinutes(minutes)} minutos. ${activityDate(date)}. ${status}. ${origin==='device' ? 'Dispositivo.' : origin==='manual' ? 'Manual.' : ''} Ver detalhes.`} onPress={onPress} style={({pressed})=>[s.card,pressed&&{opacity:.75}]}>
     <View style={s.icon}><Icon name={mental ? 'book' : 'activity'} size={24}/></View>
-    <View style={s.main}><Text style={s.title} numberOfLines={2}>{title}</Text><Text style={s.meta}>{activityDate(date)} · {minutes} min</Text><View style={s.badgeRow}>{origin && <View style={s.badge}><Icon name={origin==='device' ? 'phone' : 'edit'} size={12} color={colors.muted}/><Text style={s.badgeText}>{origin==='device' ? 'Dispositivo' : 'Manual'}</Text></View>}<Text style={[s.status,failed&&s.failure]}>{status}</Text></View></View>
+    <View style={s.main}><Text style={s.title} numberOfLines={2}>{title}</Text><Text style={s.meta}>{activityDate(date)} · {activityMinutes(minutes)} min</Text><View style={s.badgeRow}>{origin && <View style={s.badge}><Icon name={origin==='device' ? 'phone' : 'edit'} size={12} color={colors.muted}/><Text style={s.badgeText}>{origin==='device' ? 'Dispositivo' : 'Manual'}</Text></View>}<Text style={[s.status,failed&&s.failure]}>{status}</Text></View></View>
     <View style={s.trailing}>{ev!=null && <Text style={s.ev}>{ev} EV</Text>}<Icon name="arrow" size={18}/></View>
   </Pressable>;
 }
@@ -31,7 +34,7 @@ export function HistoryDetail({activity,live,offline,busy,canRetry,error,onClose
   return <Sheet visible={!!activity} title={activity ? activityTitle(activity) : 'Registro'} onClose={onClose}>
     {activity && <>
       <Text style={s.detailStatus}>{historyStatus(activity,live)}</Text>
-      <Card title="Atividade"><Copy>{activityDate(activity.date)} · {activity.minutes} minutos</Copy>{activity.energyDimension && <Copy muted>{activity.energyDimension==='intellectual' ? 'Mental' : 'Física'}</Copy>}{source && <Copy muted>{source}</Copy>}</Card>
+      <Card title="Atividade"><Copy>{activityDate(activity.date)} · {activityMinutes(activity.minutes)} minutos</Copy>{activity.energyDimension && <Copy muted>{activity.energyDimension==='intellectual' ? 'Mental' : 'Física'}</Copy>}{source && <Copy muted>{source}</Copy>}</Card>
       {earned(activity,live) && <Card title="Energia concedida"><Text style={s.points}>{activity.awardedEv} EV</Text></Card>}
       {activity.status==='confirmed' && live && activity.validationStatus==='approved' && activity.awardedEv==null && <Notice>A pontuação ainda não foi configurada para este registro.</Notice>}
       {!!error && <Notice>{error}</Notice>}
