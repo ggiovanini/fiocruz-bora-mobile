@@ -6,7 +6,7 @@ const number = (value: number) => value.toLocaleString('pt-BR', { maximumFractio
 const date = (value: string) => value.split('-').reverse().join('/');
 export function CharacterEnergyCard({ energy, illustrative = false }: { energy?: CharacterEnergy; illustrative?: boolean }) {
   return <View style={s.card}>
-    <Text style={s.title}>Bean · últimos 7 dias</Text>
+    <Text style={s.title}>Bean · janela de 7 dias</Text>
     {!energy ? <Text style={s.copy}>Resumo indisponível. Atualize sua jornada.</Text> : <>
       {illustrative && <Text style={s.copy}>Exemplo ilustrativo</Text>}
       <Text style={s.copy}>{date(energy.period.starts_on)} a {date(energy.period.ends_on)}</Text>
@@ -20,7 +20,7 @@ export function CharacterEnergyCard({ energy, illustrative = false }: { energy?:
           <Text style={s.small}>Meta completa: {number(channel.weekly_goal_ev)} EV · {number(channel.goal_percent)}% cumprida</Text>
         </View>;
       })}
-      <Text style={s.copy}>A aparência do Bean acompanha suas atividades dos últimos 7 dias.</Text>
+      <Text style={s.copy}>As cores acompanham uma janela de 7 dias. Durante pausas protegidas, os dias sem atividade ficam fora dessa janela.</Text>
       <Text style={s.small}>Cada tipo tem sua contribuição visual. Isso não muda a meta diária de EV.</Text>
     </>}
   </View>;

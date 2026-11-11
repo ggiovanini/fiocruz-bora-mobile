@@ -30,13 +30,13 @@ function RankingPeriod({period,onPeriodChange}:{period:'current'|'previous';onPe
       <Copy muted>Os períodos começam no primeiro dia e terminam no último dia de cada mês, pelo horário de Brasília.</Copy>
       <Copy>A classificação usa a média de EV por pessoa que participou da equipe no período selecionado, incluindo quem não registrou pontos. Atividades físicas e mentais contribuem para o mesmo resultado.</Copy>
       <Copy muted>Contam os dias desde a entrada até o dia anterior à saída. Entrar em uma equipe não transfere pontos de dias anteriores. Quem sai continua na média daquele mês, com os pontos dos dias em que participou.</Copy>
-      <Copy muted>Somente equipes com pelo menos 10 participantes elegíveis aparecem. Os resultados são agregados e não mostram atividades individuais.</Copy>
+      <Copy muted>Somente equipes com pelo menos {metadata?.minimum_participants ?? 5} participantes elegíveis aparecem. Os resultados são agregados e não mostram atividades individuais.</Copy>
       <Copy muted>A classificação é consolidada automaticamente a cada 15 minutos. Atualizar esta tela consulta o último resultado disponível. O ranking reúne EV válido de diferentes organizações e se renova a cada mês. Se você participa de várias equipes, seus pontos elegíveis contribuem para cada uma, uma vez por equipe.</Copy>
       <Copy muted>{metadata?.period.status === 'closed' ? 'Este período está encerrado e seus resultados são definitivos.' : 'Os resultados são parciais e podem mudar com novos registros e atividades retroativas aprovadas.'} Pontuações iguais compartilham a mesma posição.</Copy>
     </Sheet>
       {!!error && <Notice>{error}</Notice>}
       {busy && <Copy muted>Carregando classificação…</Copy>}
-      {!busy && !error && metadata?.period.status !== 'awaiting_calculation' && !items.length && <Card title="Vamos crescer juntos"><Copy>A classificação aparece quando houver equipes com pelo menos 10 participantes elegíveis no período selecionado.</Copy></Card>}
+      {!busy && !error && metadata?.period.status !== 'awaiting_calculation' && !items.length && <Card title="Vamos crescer juntos"><Copy>A classificação aparece quando houver equipes com pelo menos {metadata?.minimum_participants ?? 5} participantes elegíveis no período selecionado.</Copy></Card>}
       {!busy && !error && metadata?.period.status === 'awaiting_calculation' && <Notice>A classificação do período selecionado está sendo preparada. A próxima apuração acontece automaticamente.</Notice>}
       {!!items.length && <View style={s.caption}><Text style={s.eyebrow}>EQUIPES</Text><Text style={s.eyebrow}>EV MÉDIA</Text></View>}
       {items.map(team => <View key={team.id} style={[s.row, team.is_my_team && s.mine]}>

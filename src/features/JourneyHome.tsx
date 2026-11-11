@@ -34,7 +34,17 @@ export default function JourneyHome() {
   const router = useRouter();
   const headerScroll = useHeaderScroll();
   const [colorsOpen, setColorsOpen] = useState(false);
+  const [returnOpen, setReturnOpen] = useState(false);
+  const [returnBusy, setReturnBusy] = useState(false);
+  const [returnError, setReturnError] = useState('');
   const { state, storageError, api } = useMock();
+  const protection = apiEnabled ? api.data.energy?.protection : null;
+  const returnToJourney = async () => {
+    setReturnBusy(true); setReturnError('');
+    try { await api.requestReturn(); setReturnOpen(false); }
+    catch (e) { setReturnError(e instanceof Error ? e.message : 'Não foi possível solicitar o retorno.'); }
+    finally { setReturnBusy(false); }
+  };
   const { energy, goal } = useEnergyPreview();
   const daily = dailyEnergy(energy.green, energy.blue, goal);
   const today = useToday();
@@ -44,6 +54,16 @@ export default function JourneyHome() {
   return <SafeAreaView edges={['top', 'left', 'right']} style={s.safe}>
     <AppHeader scrollY={headerScroll.scrollY} />
     <ScrollView onScroll={headerScroll.onScroll} scrollEventThrottle={16} refreshControl={apiEnabled ? <RefreshControl refreshing={api.busy} onRefresh={() => { void api.refresh().catch(() => {}); }} tintColor={colors.lime} /> : undefined} contentContainerStyle={s.body}>
+      {protection && <View style={{ marginTop: 24, padding: 16, borderRadius: 14, backgroundColor: colors.surface, gap: 8 }}>
+        <Text style={s.ringTitle}>Pausa protegida</Text>
+        <Text style={s.goalCopy}>Sua vitalidade está protegida até {protection.ends_on.split('-').reverse().join('/')}. Você pode continuar registrando atividades.</Text>
+        {protection.return_requested_on ? <Text style={s.goalCopy}>Retorno de {protection.return_requested_on.split('-').reverse().join('/')} aguardando confirmação do RH, apenas para uso do aplicativo. Sua licença ou afastamento com a organização não é alterado.</Text> : <Pressable accessibilityRole="button" onPress={() => setReturnOpen(true)} style={{ paddingVertical: 10 }}><Text style={s.ringLabel}>Já voltei</Text></Pressable>}
+      </View>}
+      <Sheet visible={returnOpen} title="Solicitar retorno" onClose={() => { if (!returnBusy) setReturnOpen(false); }}>
+        <Text style={s.goalCopy}>Esta solicitação é apenas para retomar o uso normal do aplicativo. Ela não altera nem encerra qualquer licença ou período de afastamento com sua organização. Após a confirmação do RH, a pausa protegida no Bóra será encerrada a partir de hoje e os dias voltarão a contar normalmente.</Text>
+        {!!returnError && <Text accessibilityRole="alert" style={s.goalCopy}>{returnError}</Text>}
+        <Pressable accessibilityRole="button" disabled={returnBusy} onPress={() => { void returnToJourney(); }} style={{ paddingVertical: 20 }}><Text style={s.ringTitle}>{returnBusy ? 'Enviando…' : 'Solicitar retorno a partir de hoje'}</Text></Pressable>
+      </Sheet>
       <View style={s.stats}>
         <Pressable accessibilityRole="button" accessibilityLabel={`Meu nível: ${evolution.level}. Ver evolução.`} style={s.stat} onPress={() => router.push('/levels')}><Text style={s.statNumber}>{evolution.level || '—'}</Text><Text style={s.statLabel}>NÍVEL</Text></Pressable>
         <View style={[s.stat, s.statMiddle]}><View style={s.evNumber}><Icon name="bolt" color={colors.primary} size={21}/><Text style={s.total}>{daily.total}<Text style={s.evUnit}> EV</Text></Text></View><Text style={s.statLabel}>ENERGIA DE HOJE</Text></View>

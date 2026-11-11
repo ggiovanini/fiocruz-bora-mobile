@@ -75,6 +75,24 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
     } finally { if (request === sequence.current) setBusy(false); }
   }, []);
   const refresh = async () => { if (current.current.userId) await connect(current.current.userId, current.current.membershipId); };
+  // Refresh only energy after a successful activity; profile/catalog/history are unchanged.
+  const refreshEnergy = async () => {
+    const token = generation.current;
+    const request = ++sequence.current;
+    setBusy(false);
+    const result = await apiRequest('/me/energy');
+    if (!valid(token) || request !== sequence.current) return;
+    const days = new Map(dataRef.current.energy?.days.map(day => [day.date, day]) ?? []);
+    for (const day of result.data.days) days.set(day.date, day);
+    update({ ...dataRef.current, energy: { ...result.data, days: [...days.values()] } });
+  };
+  const requestReturn = async () => {
+    const token = generation.current;
+    const result = await apiRequest('/me/vitality-pause/return', { method: 'POST' });
+    if (!valid(token)) return;
+    if (dataRef.current.energy?.protection) update({ ...dataRef.current, energy: { ...dataRef.current.energy, protection: { ...dataRef.current.energy.protection, return_requested_on: result.data.return_requested_on } } });
+    await refreshEnergy();
+  };
   const login = async () => {
     closing.current = false;
     generation.current++; update(emptyJourney); setError('');
@@ -145,7 +163,7 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
       if (!valid(token)) return;
       patch({ ...fromServer(result.data) });
       // A successful post remains successful even when refreshing the summary fails.
-      await refresh().catch(() => {});
+      await refreshEnergy().catch(() => {});
     } catch (failure) {
       patch({ status: 'failed', error: failure instanceof Error ? failure.message : 'Não foi possível enviar. Tente novamente.' });
       if (failure instanceof ApiError && failure.status === 403) {
@@ -207,5 +225,5 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
     update(emptyJourney); setBusy(false);
     commit({ ...current.current, session: 'expired', accepted: false });
   };
-  return { data, busy, error, connect, login, selectMembership, acceptConsent, saveProfile, saveGoal, enqueue, send, refresh, loadMore, loadEnergyMonth, logout, expire };
+  return { data, busy, error, connect, login, selectMembership, acceptConsent, saveProfile, saveGoal, requestReturn, enqueue, send, refresh, loadMore, loadEnergyMonth, logout, expire };
 }

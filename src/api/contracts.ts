@@ -21,6 +21,7 @@ export type CharacterEnergy = {
 };
 export type CharacterEnergyChannel = { earned_ev: number; weekly_goal_ev: number; full_color_ev: number; remaining_for_color_ev: number; goal_percent: number; intensity_percent: number; tint: number };
 export type EnergySummary = {
+  protection?: { id: string; starts_on: string; ends_on: string; return_requested_on: string | null } | null;
   character_energy?: CharacterEnergy;
   timezone: string; today: EnergyDay; days: EnergyDay[]; lifetime_earned_ev: number; streak_days: number;
   inactivity: { completed_days: number | null };
