@@ -62,3 +62,28 @@ Não é necessário modificar o `.env` de desenvolvimento. Uma mudança de URL e
 Requisitos: Node 20.19 ou superior disponível para o Xcode, dependências instaladas e acesso HTTPS ao servidor pelo aparelho. Os testes verificam seleção de Release, preservação de Debug e rejeição de configurações inválidas. Um Archive completo não foi executado; falta a URL real do ambiente externo.
 
 Referência: [variáveis de ambiente no Expo](https://docs.expo.dev/guides/environment-variables/). A escolha do ambiente aqui é explícita pela configuração do Xcode, sem usar NODE_ENV como seletor de servidor.
+
+## React Native Core: erro de ligação em Debug · 21/10/2026
+
+Ao voltar a compilar localmente, o linker não encontrava `facebook::react::Sealable::Sealable()` referenciado por `ExpoFabricViewObjC.o`. O framework React instalado não continha os símbolos de Debug e faltava `ios/Pods/React-Core-prebuilt/.last_build_configuration`. O seletor do React Native 0.86.3 presume Debug quando esse marcador está ausente, deixando o framework incompatível sem substituição. Limpar somente o cache do build não corrige o conteúdo em Pods.
+
+`scripts/patch-react-native-core.cjs`, executado no postinstall, corrige apenas essa suposição: sem marcador, extrair o artefato da configuração solicitada e registrar a configuração pelo mecanismo original do React Native. Com marcador válido, a seleção Debug/Release permanece igual. O patch é idempotente e exige revisão se o script upstream mudar. Não define flags de produção em componentes Debug nem altera a ABI.
+
+Para uma instalação já existente, executar `npm run postinstall` antes de compilar novamente. O próximo build selecionará o artefato correto. A correção também será aplicada automaticamente em novos `npm install`/`npm ci`.
+
+O teste de regressão cobre marcador ausente, configurações iguais/diferentes, reaplicação e mudança do script upstream. Não é necessário trocar globalmente o Xcode nem adicionar frameworks privados para resolver o símbolo ausente.
+
+Validação da correção: `npm run ios -- --no-build-cache --no-bundler --device D4E8876C-469B-4F8B-BB77-3D6A294A902B` concluiu com `Build Succeeded`, zero erros e zero avisos; o Expo instalou e abriu o app no simulador iPhone 17 Pro / iOS 26.2. Os 72 testes passaram. A compilação foi validada sem iniciar outro Metro (`--no-bundler`); a execução das telas depende do servidor de desenvolvimento disponível.
+
+## Preparação da versão 1.0.2 · build 155 · 09/11/2026
+
+Versão sincronizada em app.json, package.json e projetos nativos; Android usa versionCode 155. Prebuild deve usar `npx expo prebuild --no-clean --no-install` para preservar ajustes nativos existentes. O plugin de API de TestFlight agora acessa a seção PBXShellScriptBuildPhase pelo objeto do projeto, compatível com o parser xcode instalado, com teste de reaplicação. O `.nvmrc` fixa Node 20.19.4.
+
+Após instalar os Pods, abrir `ios/Bra.xcworkspace` e gerar um novo Archive Release para Validate App / Distribute App. A publicação no App Store Connect é manual; esta preparação não envia o aplicativo à Apple. As mudanças da área Equipes exigem também publicar a API atualizada (filtros de busca e participação).
+
+
+## Preparação da versão 1.0.2 · build 156 · 10/11/2026
+
+Build iOS incrementado para 156 em app.json, Info.plist e configurações Debug/Release do projeto Xcode. A versão do projeto foi alinhada a 1.0.2, já usada no aplicativo. Prebuild iOS concluído com `npx expo prebuild --platform ios --no-clean --no-install`, preservando os arquivos nativos existentes. Android permanece no versionCode 155.
+
+Abrir `ios/Bra.xcworkspace` para gerar o Archive e enviar pelo Xcode. Esta preparação não gera Archive nem envia o aplicativo à Apple. Inclui a formatação das durações de treino com no máximo uma casa decimal e vírgula em português, sem alterar os valores de origem ou o cálculo de EV.

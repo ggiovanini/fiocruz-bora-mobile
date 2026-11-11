@@ -1,4 +1,6 @@
-# Teste base de integração com o aparelho
+# Integração com o aparelho
+
+Atualização de 09/11/2026: além da consulta, há importação manual e envio automático opcional dos treinos reconhecidos. A autorização de leitura não ativa envio por conta própria; confira a seção de envio automático ao final.
 
 Entrada: **Perfil → Conectar dados de atividade**. O histórico manual também tem um atalho para consultar os registros do aparelho.
 
@@ -11,10 +13,10 @@ Entrada: **Perfil → Conectar dados de atividade**. O histórico manual também
 - Passos consultados por agregação nativa, sem somar amostras brutas de telefone e relógio no JavaScript.
 - Solicitação de autorização explícita ao conectar. Atualização automática ao abrir ou voltar ao app se a última tentativa tiver pelo menos cinco minutos, e a cada cinco minutos durante o uso. O usuário pode desativar a atualização automática e usar Atualizar agora. A primeira leitura ocorre após conectar; nenhuma autorização é solicitada automaticamente.
 - Dados reais mantidos **apenas na memória**, fora do armazenamento dos mocks e de eventos de telemetria. Sair da conta, revogar o aceite do protótipo, trocar organização ou encerrar o processo elimina a leitura. Ir para segundo plano limpa a leitura exibida e cancela o aproveitamento de consultas pendentes. Ao voltar, o app respeita o intervalo de cinco minutos; Atualizar agora permite antecipar a consulta.
-- Apenas as preferências de conexão e atualização automática são persistidas por organização, separadas dos mocks e dos registros de saúde. Ao reabrir com sessão ativa, o Bora retoma a preferência salva, mas o sistema continua controlando o acesso real. Enquanto não houver identidade real, essa preferência é local ao aparelho e à organização do protótipo.
+- Apenas as preferências de conexão, atualização automática e envio automático são persistidas por conta e contexto, separadas dos mocks e dos registros de saúde. Ao reabrir com sessão ativa, o Bora retoma a preferência salva, mas o sistema continua controlando o acesso real. Enquanto não houver identidade real, essa preferência é local ao aparelho e à organização do protótipo.
 - Falhas de leitura também respeitam o intervalo para evitar tentativas contínuas.
-- Uma sincronização substitui a janela anterior e elimina repetições pelo par plataforma + identificador. Registros apagados deixam de aparecer na próxima leitura. Cópias do mesmo treino produzidas por diferentes apps, com IDs diferentes, ainda não são reconciliadas.
-- Sem envio à API, Energia Vital, escrita nos repositórios de saúde, GPS, dados cardíacos ou leitura em segundo plano.
+- Uma sincronização substitui a janela anterior e elimina repetições pelo par plataforma + identificador. Registros apagados deixam de aparecer na próxima leitura. A API bloqueia intervalos sobrepostos entre fontes e registros manuais da mesma atividade/dia; esses conflitos pedem revisão.
+- Envio à API somente por importação manual confirmada ou pela autorização específica de envio automático. Sem escrita nos repositórios de saúde, GPS, dados cardíacos ou leitura/envio em segundo plano.
 
 Esta etapa **importa registros já existentes** no Saúde/Health Connect. Não inicia nem grava um treino, nem captura movimento ao vivo. Um aplicativo ou dispositivo de origem precisa produzir esses registros. Android Health Connect não garante que todo aparelho tenha uma fonte de passos configurada.
 
@@ -77,3 +79,28 @@ O envio de um Archive pode ser rejeitado por ausência de `NSHealthUpdateUsageDe
 A autorização continua com `toShare: []` e leitura somente de passos e treinos. A presença da descrição no plist não concede acesso nem altera essa solicitação. Não é uma opção do cadastro no App Store Connect. Referência: [NSHealthUpdateUsageDescription — Apple](https://developer.apple.com/documentation/bundleresources/information-property-list/nshealthupdateusagedescription).
 
 Para reenviar, gere um **novo Archive** no Xcode e use Validate App / Distribute App. O Archive anterior conserva o plist antigo. Não é necessário apagar Pods ou gerar o projeto novamente para aplicar esta correção, pois o plist nativo já foi atualizado. As próximas execuções de prebuild preservam a descrição pelo plugin. Se o número de build já tiver sido aceito no App Store Connect, incremente-o antes do novo Archive. A aceitação do envio precisa ser confirmada pela Apple.
+
+## Organização das telas · 09/11/2026
+
+A consulta e importação ficam em **Treinos do aparelho** (`/health`), com lista compacta e detalhe em modal. Permissões, conexão, atualização automática e desconexão ficam em **Conexão de treinos** (`/health-settings`). Ambas usam o mesmo HealthProvider; a leitura continua separada da autorização de envio. O envio pode ser manual ou automático conforme a opção explicitamente escolhida. Os acessos de Configurações e Ajuda levam diretamente à conexão.
+
+
+## Envio automático autorizado · 09/11/2026
+
+Em Conexão de treinos, “Autorizo o envio automático dos treinos” vem desativado, inclusive para preferências antigas. A autorização informa os dados enviados: tipo, duração, horários e identificador dos treinos reconhecidos dos últimos sete dias. A opção é por conta/contexto neste aparelho. Exige conexão do Saúde/Health Connect, atualização automática ativa e termos vigentes concedidos. Desconectar desativa a opção; desativar somente a atualização pausa novos envios automáticos. Uma requisição já iniciada pode concluir.
+
+HealthImportProvider compartilha resultados entre a lista e o detalhe. HealthImportQueue envia de forma sequencial, usando o mesmo endpoint de importação e identidade estável da origem. O caminho manual compartilha o bloqueio por treino; não há somas locais de EV. A API mantém idempotência, consentimento, janela temporal e prevenção de sobreposição/manual duplicado. import_mode distingue automatic de manual na auditoria.
+
+Somente tipos reconhecidos com dimensão fixa e pontuação configurada são automáticos. Tipos desconhecidos, escolhas Física/Mental, ausência de taxa e erros de validação/conflito ficam para revisão manual. Falhas de rede, timeout, limite de requisições e erros de servidor pausam o lote até o próximo ciclo de leitura, sem insistir em cada treino restante. Consultas permanecem a cada cinco minutos com o app em primeiro plano. Não há tarefa de envio com o app fechado.
+
+Os estados de envio ficam na memória do contexto; snapshots e payloads não são persistidos no aparelho. Ao reabrir, os treinos elegíveis são consultados novamente e a API reconhece reenvios sem crédito duplicado. O treino precisa continuar na janela aceita pela API. Apenas a preferência é persistida. Logout/troca de contexto encerram a fila; uma verificação de identidade antes de transmitir impede usar o token de outra conta.
+
+Validação: 111 testes do app e 170 da API aprovados; TypeScript aprovado. Testes usam treinos sintéticos para concorrência manual/automático, repetição, recuperação de rede, pausa de lote, revogação durante envio, classificação pendente, preferência antiga e troca de sessão. No simulador iOS, conferidos opção desativada e explicação de autorização. Não foram ativados envios nem enviados treinos reais; a base do simulador não tinha treinos disponíveis. O teste com treinos de aparelho físico permanece necessário para validar o comportamento nativo ponta a ponta.
+
+## Prévia visual de treinos · 09/11/2026
+
+Treinos do aparelho oferece “Ver exemplo com treinos fictícios”, abrindo /health-preview. A prévia reutiliza WorkoutImportView, a mesma apresentação dos treinos reais, com quatro cenários: caminhada confirmada (35 EV ilustrativos), corrida em envio, ciclismo com falha e Yoga aguardando classificação. Lista e modais identificam a simulação.
+
+A tentativa de envio é local, com breve transição para Enviando e confirmação fictícia. Há ações para concluir o cenário de envio e reiniciar os exemplos. Fixture e estados ficam isolados do HealthSession e do HealthImportProvider: não se solicita permissão, grava dados no Saúde, chama importação na API ou altera a jornada. Preferências reais permanecem preservadas.
+
+Validação: 112 testes do app e TypeScript aprovados. Teste de isolamento impede dependências de API/HealthProvider no componente de prévia. No simulador iOS foram conferidos lista, modal, recuperação fictícia de falha e reinício. A prévia foi deixada aberta para avaliação.

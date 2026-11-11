@@ -2,7 +2,7 @@ const { withXcodeProject } = require('expo/config-plugins');
 
 module.exports = function withTestflightApi(config) {
   return withXcodeProject(config, config => {
-    const phases = config.modResults.pbxShellScriptBuildPhaseSection();
+    const phases = config.modResults.hash.project.objects.PBXShellScriptBuildPhase;
     for (const phase of Object.values(phases)) {
       if (!phase || typeof phase !== 'object' || !phase.name?.includes('Bundle React Native')) continue;
       const script = JSON.parse(phase.shellScript);

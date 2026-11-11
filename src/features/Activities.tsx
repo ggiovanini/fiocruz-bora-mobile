@@ -1,3 +1,5 @@
+import { ActivityCelebration } from "./activity/ActivityCelebration";
+import { ActivityStepScreen } from "./activity/ActivityStepScreen";
 import { apiEnabled } from "@/api/session";
 import { validateApiDraft } from "@/api/activityMapping";
 import { useRef, useState } from "react";
@@ -98,6 +100,11 @@ export function Review() {
         />
       </Flow>
     );
+  function cancel() {
+    if (submission.current) return;
+    dispatch({ type: 'draft', value: null });
+    router.dismissTo('/history');
+  }
   const mission = missions.find((m) => m.id === d.missionId);
   async function submit() {
     if (!d || submission.current) return;
@@ -111,7 +118,7 @@ export function Review() {
     if (apiEnabled) {
       try {
         const id = await api.enqueue(d);
-        router.replace({ pathname: '/activity-result', params: { id } });
+        router.replace({ pathname: '/activity-result', params: { id, celebrate: '1', dimension: d.energyDimension ?? api.data.catalog.find(item => item.code === d.activityCode)?.energy_dimension ?? 'physical' } });
       } catch (error) { setError(error instanceof Error ? error.message : 'Não foi possível salvar o registro.'); setSubmitted(false); submission.current = false; }
       return;
     }
@@ -121,38 +128,22 @@ export function Review() {
       createdAt: new Date().toISOString(),
     };
     dispatch({ type: "enqueue", value: activity });
-    router.replace({ pathname: "/activity-result", params: { id: d.id } });
+    router.replace({ pathname: "/activity-result", params: { id: d.id, celebrate: '1', dimension: d.energyDimension ?? 'physical' } });
   }
-  return (
-    <Flow title="Tudo certo com seu registro?">
-      <Card title={activityTitle(d)}>
-        <Copy>
-          {d.minutes} minutos · {d.date}
-        </Copy>
-        <Copy muted>
-          {mission ? `Missão: ${mission.title}` : "Registro avulso"}
-        </Copy>
-      </Card>
-      <Copy>
-        {apiEnabled ? 'Sua atividade será registrada e a Energia Vital será calculada pela API.' : 'Seu registro fica salvo neste aparelho.'}
-      </Copy>
-      {!!error && <Notice>{error}</Notice>}
-      <Button
-        title={state.offline ? "Salvar para enviar depois" : "Enviar atividade"}
-        disabled={submitted}
-        onPress={submit}
-      />
-      <Button
-        secondary
-        title="Editar atividade"
-        onPress={() => router.back()}
-      />
-
-    </Flow>
-  );
+  return <ActivityStepScreen title="Tudo certo?" step={5} onBack={() => router.back()} onClose={() => router.replace('/home')}
+    footer={<><Button title={state.offline ? "Salvar para enviar depois" : "Confirmar atividade"} busy={submitted} disabled={submitted} onPress={() => { void submit(); }}/><Button secondary title="Cancelar" disabled={submitted} onPress={cancel}/>{!!error && <Notice>{error}</Notice>}</>}>
+    <Card title={activityTitle(d)}>
+      <Copy>{d.energyDimension === 'intellectual' ? 'Atividade mental' : d.energyDimension === 'physical' ? 'Atividade física' : 'Atividade'}</Copy>
+      <Copy>{d.minutes} minutos</Copy>
+      <Copy>{new Date(`${d.date}T12:00:00Z`).toLocaleDateString('pt-BR',{timeZone:'UTC'})}</Copy>
+      {!!mission && <Copy muted>{mission.title}</Copy>}
+    </Card>
+    {state.offline && <Notice>Seu registro ficará salvo para enviar quando a conexão voltar.</Notice>}
+    {!apiEnabled && <Copy muted>Registro de demonstração.</Copy>}
+  </ActivityStepScreen>;
 }
 export function ActivityResult() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, celebrate, dimension } = useLocalSearchParams<{ id: string; celebrate?: string; dimension?: string }>();
   const { state, send, api } = useMock();
   const router = useRouter();
   const a = state.activities.find((a) => a.id === id);
@@ -165,6 +156,7 @@ export function ActivityResult() {
         />
       </Flow>
     );
+  if (celebrate === '1' && a.status !== 'failed') return <ActivityCelebration activity={a} dimension={dimension === 'intellectual' ? 'intellectual' : 'physical'} onClose={() => router.replace('/home')}/>;
   const descriptions = {
     pending:
       "Salvo no aparelho, aguardando processamento.",
@@ -217,56 +209,4 @@ export function ActivityResult() {
     </Flow>
   );
 }
-export function History() {
-  const { state, dispatch, api } = useMock();
-  const router = useRouter();
-  return (
-    <Flow title="Minhas atividades">
-      {apiEnabled && <Button secondary title={api.busy ? 'Atualizando…' : 'Atualizar atividades'} disabled={api.busy} onPress={() => { void api.refresh().catch(() => {}); }} />}
-      <Button
-        secondary
-        title="Consultar atividades do aparelho"
-        onPress={() => router.push("/health")}
-      />
-      {state.draft && (
-        <Card title="Rascunho não enviado">
-          <Copy>{activityTitle(state.draft)}</Copy>
-          <Button
-            secondary
-            title="Continuar rascunho"
-            onPress={() => router.push("/activity")}
-          />
-        </Card>
-      )}
-      {!state.activities.length && (
-        <Placeholder>Nenhuma atividade registrada ainda.</Placeholder>
-      )}
-      {state.activities.map((a) => (
-        <Card key={a.id} title={activityTitle(a)}>
-          <Copy>
-            {a.minutes} minutos · {a.date}
-          </Copy>
-          <Copy muted>{a.status === 'confirmed' && apiEnabled ? a.validationStatus === 'approved' ? `${a.awardedEv ?? 0} EV · Atividade registrada` : 'Aguardando validação' : statusLabels[a.status]}</Copy>
-          <Button
-            secondary
-            title="Ver registro"
-            onPress={() =>
-              router.push({
-                pathname: "/activity-result",
-                params: { id: a.id },
-              })
-            }
-          />
-        </Card>
-      ))}
-      {apiEnabled && api.data.nextCursor && <Button secondary title="Carregar mais atividades" disabled={api.busy} onPress={() => { void api.loadMore().catch(() => {}); }} />}
-      <Button
-        title={state.draft ? "Continuar rascunho" : "Registrar nova atividade"}
-        onPress={() => {
-          if (!state.draft) dispatch({ type: "draft", value: newDraft() });
-          router.push("/activity");
-        }}
-      />
-    </Flow>
-  );
-}
+export { default as History } from "./history/History";

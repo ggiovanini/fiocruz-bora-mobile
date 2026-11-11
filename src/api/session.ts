@@ -1,8 +1,9 @@
+import { getApiBaseUrl } from './config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // TEMPORARY test access. Replace with institutional authentication.
-export const apiEnabled = !!process.env.EXPO_PUBLIC_API_URL;
-const base = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/$/, '');
+const base = getApiBaseUrl();
+export const apiEnabled = !!base;
 const key = 'bora:temporary-api-session:v1';
 type User = { id: string; display_name: string };
 type Session = { token: string; user: User; expires_at: string };
@@ -13,10 +14,11 @@ export class ApiError extends Error {
 const listeners = new Set<() => void>();
 export function onSessionExpired(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; }
 
-export async function apiRequest(path: string, init: RequestInit = {}) {
+export async function apiRequest(path: string, init: RequestInit = {}, expectedUserId?: string) {
   if (!apiEnabled) throw new ApiError(0, 'A conexão com o serviço não está configurada.');
   const raw = await AsyncStorage.getItem(key);
   const session: Session | null = raw ? JSON.parse(raw) : null;
+  if(expectedUserId && session?.user.id!==expectedUserId)throw new ApiError(401,'A conta mudou. Confira a sessão antes de enviar o treino.');
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
   try {

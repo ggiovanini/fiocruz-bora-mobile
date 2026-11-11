@@ -1,50 +1,50 @@
+import { useState } from 'react';
+import { InstitutionalAccess } from './InstitutionalAccess';
 import { useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { usePagedResource } from '@/api/usePagedResource';
-import { StyleSheet, Text, View } from 'react-native';
 import { useMock } from '@/mocks/MockProvider';
-import { Button, Card, Copy, Flow, Notice } from '@/ui/Flow';
+import { Button, Card, Copy, Notice } from '@/ui/Flow';
+import { ListScreen } from '@/ui/ListScreen';
+import { Icon } from '@/design/Icon';
 import { colors } from '@/design/tokens';
 import { newDraft } from '@/mocks/model';
-import { MedalBadge } from './MedalBadge';
-type Challenge = {
-  id: string; title: string; description: string; metric: string; target: number; progress: number; progress_percent: number;
-  starts_on: string; ends_on: string; activity_type: string | null; activity_name: string | null; period_status: 'active' | 'upcoming' | 'ended'; completed: boolean;
-  medal: { name: string; description: string; style: string; image_url?: string | null; earned: boolean };
-};
-const units: Record<string, string> = { minutes: 'min', activities: 'atividades', ev: 'EV' };
-const date = (value: string) => value.split('-').reverse().join('/');
+import { ChallengeCard, ChallengeDetail } from './challenges/ChallengeViews';
+import type { Challenge } from './challenges/model';
 export default function Challenges() {
+  const { state } = useMock();
+  return <InstitutionalAccess title="Desafios"><OrganizationChallenges key={state.membershipId}/></InstitutionalAccess>;
+}
+function OrganizationChallenges() {
   const { state, dispatch, api } = useMock();
   const router = useRouter();
-  const { items, busy, error, more, refresh, loadMore } = usePagedResource<Challenge>(`/memberships/${state.membershipId}/challenges`);
-  return <Flow title="Desafios e conquistas" back={false}>
-    <Copy muted>Uma meta de cada vez. Conclua os desafios e guarde suas medalhas.</Copy>
-    <Button secondary title="Minhas medalhas" onPress={() => router.push('/medals')} />
-    {!!error && <Notice>{error}</Notice>}
+  const [search, setSearch] = useState('');
+  const [query, setQuery] = useState('');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { items, metadata, busy, error, more, refresh, loadMore } = usePagedResource<Challenge, { total: number }>(`/memberships/${state.membershipId}/challenges${query ? `?q=${encodeURIComponent(query)}` : ''}`);
+  function applySearch() { setSelectedId(null); setQuery(search.trim()); }
+  const selected = items.find(item => item.id === selectedId);
+  function register() {
+    if (!selected) return;
+    if (!state.draft && selected.activity_type) {
+      const item = api.data.catalog.find(item => item.code === selected.activity_type);
+      if (item) dispatch({ type: 'draft', value: { ...newDraft(), type: item.name, activityCode: item.code, energyDimension: item.energy_dimension === 'physical' || item.energy_dimension === 'intellectual' ? item.energy_dimension : undefined, date: api.data.energy?.today.date ?? newDraft().date } });
+    }
+    setSelectedId(null);
+    router.push('/activity');
+  }
+  return <ListScreen title="Desafios" icon="target" back={false} search={{value:search,onChangeText:setSearch,onSubmit:applySearch,activeQuery:query,onClear:()=>{setSearch('');setQuery('');setSelectedId(null);},placeholder:'Nome ou descrição'}}>
+    <View style={s.toolbar}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Minhas medalhas" onPress={()=>router.push('/medals')} style={s.action}><Icon name="trophy" size={20}/><Text style={s.label}>Medalhas</Text></Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="Atualizar desafios" accessibilityState={{disabled:busy,busy}} disabled={busy} onPress={()=>{setSelectedId(null);refresh();}} style={[s.action,busy&&{opacity:.5}]}><Icon name="clock" size={20}/><Text style={s.label}>Atualizar</Text></Pressable>
+    </View>
+    {!!metadata?.total && <Copy muted>{items.length} de {metadata.total} {metadata.total === 1 ? 'desafio' : 'desafios'}{query ? metadata.total === 1 ? ' encontrado' : ' encontrados' : ''}</Copy>}
+    {!!error && <><Notice>{error}</Notice><Button secondary title="Tentar novamente" disabled={busy} onPress={refresh}/></>}
     {busy && <Copy muted>Carregando desafios…</Copy>}
-    {!busy && !error && !items.length && <Card title="Sua próxima conquista vem aí"><Copy>Nenhum desafio publicado para sua organização no momento.</Copy></Card>}
-    {items.map(challenge => <Card key={challenge.id} title={challenge.title}>
-      <Copy muted>{challenge.description}</Copy>
-      <Copy muted>{challenge.activity_name ? `Atividade: ${challenge.activity_name}` : 'Todas as atividades aprovadas contam.'}</Copy>
-      <MedalBadge imageUrl={challenge.medal.image_url} variant={challenge.medal.style} name={challenge.medal.name} earned={challenge.completed} />
-      <Text style={s.medalName}>{challenge.medal.name}</Text>
-      <Copy muted>{challenge.medal.description}</Copy>
-      <Text style={s.progress}>{challenge.progress} / {challenge.target} {units[challenge.metric]}</Text>
-      <View style={s.track} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: challenge.progress_percent }}><View style={[s.fill, { width: `${challenge.progress_percent}%` }]} /></View>
-      <Copy muted>{date(challenge.starts_on)} a {date(challenge.ends_on)}</Copy>
-      {challenge.completed ? <Notice>Medalha conquistada! Ela já está na sua coleção.</Notice>
-        : challenge.period_status === 'upcoming' ? <Copy muted>Esse desafio começa em breve.</Copy>
-        : challenge.period_status === 'ended' ? <Copy muted>O período deste desafio terminou.</Copy>
-        : <Button title="Registrar atividade" onPress={() => {
-          if (!state.draft && challenge.activity_type) {
-            const item = api.data.catalog.find(item => item.code === challenge.activity_type);
-            if (item) dispatch({ type: 'draft', value: { ...newDraft(), type: item.name, activityCode: item.code, date: api.data.energy?.today.date ?? newDraft().date } });
-          }
-          router.push('/activity');
-        }} />}
-    </Card>)}
-    {more && <Button secondary title="Carregar mais desafios" disabled={busy} onPress={loadMore} />}
-    <Button secondary title="Atualizar desafios" disabled={busy} onPress={refresh} />
-  </Flow>;
+    {!busy && !error && !items.length && <Card title={query ? "Nenhum desafio encontrado" : "Sua próxima conquista vem aí"}><Copy>{query ? "Tente outro termo ou limpe a busca." : "Nenhum desafio publicado para sua organização no momento."}</Copy></Card>}
+    {items.map(challenge=><ChallengeCard key={challenge.id} challenge={challenge} onPress={()=>setSelectedId(challenge.id)}/>)}
+    {more && <Button secondary title="Carregar mais desafios" disabled={busy} onPress={loadMore}/>}
+    <ChallengeDetail challenge={selected} onClose={()=>setSelectedId(null)} onRegister={register} hasDraft={!!state.draft} onMedals={()=>{setSelectedId(null);router.push('/medals');}}/>
+  </ListScreen>;
 }
-const s = StyleSheet.create({ medalName: { textAlign: 'center', fontFamily: 'Montserrat_600SemiBold', color: colors.text, fontSize: 17 }, progress: { color: colors.text, fontFamily: 'Montserrat_600SemiBold', fontSize: 18 }, track: { height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: colors.border }, fill: { height: '100%', backgroundColor: colors.lime } });
+const s=StyleSheet.create({toolbar:{flexDirection:'row',justifyContent:'space-between',gap:12},action:{minHeight:44,flexDirection:'row',alignItems:'center',gap:8,paddingHorizontal:6},label:{color:colors.text,fontSize:12,fontFamily:'Montserrat_500Medium'}});

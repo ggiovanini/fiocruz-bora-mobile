@@ -29,14 +29,14 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
     const request = ++sequence.current;
     setBusy(true); setError('');
     try {
-      const [profile, memberships, energy, catalog] = await Promise.all([
-        apiRequest('/me'), apiRequest('/me/memberships'), apiRequest('/me/energy'), apiRequest('/activity-types'),
+      const [profile, memberships, energy, catalog, registrations] = await Promise.all([
+        apiRequest('/me'), apiRequest('/me/memberships'), apiRequest('/me/energy'), apiRequest('/activity-types'), apiRequest('/me/organization-requests'),
       ]);
       if (!valid(token) || request !== sequence.current) return;
       if (profile.data.id !== userId) throw new Error('A conta mudou. Entre novamente.');
       const remembered = selected ?? await AsyncStorage.getItem(`bora:membership:v1:${userId}`) ?? undefined;
       const member = memberships.data.find((m: { id: string }) => m.id === remembered)
-        ?? (memberships.data.length === 1 ? memberships.data[0] : undefined);
+        ?? (remembered !== 'personal' && memberships.data.length === 1 ? memberships.data[0] : { id: 'personal', organization_name: 'Jornada pessoal' });
       const switched = current.current.userId !== userId || current.current.membershipId !== member?.id;
       const raw = switched ? await AsyncStorage.getItem(journeyStorageKey(userId, member?.id)) : null;
       const local = switched ? restoreState(raw) : current.current;
@@ -45,7 +45,7 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
       if (member) {
         [consent, history] = await Promise.all([
           apiRequest(`/memberships/${member.id}/consents/activity-recording`).then(result => result.data),
-          apiRequest(`/memberships/${member.id}/activities?per_page=20`),
+          apiRequest('/memberships/personal/activities?per_page=20'),
         ]);
         if (!valid(token) || request !== sequence.current) return;
         await AsyncStorage.setItem(`bora:membership:v1:${userId}`, member.id);
@@ -57,11 +57,11 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
         for (const day of energy.data.days) days.set(day.date, day);
         energy.data.days = [...days.values()];
       }
-      update({ profile: profile.data, memberships: memberships.data, catalog: catalog.data, energy: energy.data, consent, nextCursor: history.next_cursor });
+      update({ profile: profile.data, memberships: memberships.data, registrations: registrations.data ?? [], catalog: catalog.data, energy: energy.data, consent, nextCursor: history.next_cursor });
       const latestLocal = switched ? local : current.current;
       commit({ ...initialState, ...latestLocal, userId, membershipId: member?.id, session: 'active',
         name: profile.data.display_name, organization: member?.organization_name ?? '', offline: false, failNext: false,
-        accepted: consent?.status === 'granted', profileComplete: !!profile.data.display_name?.trim(),
+        accepted: consent?.status === 'granted', profileComplete: !!profile.data.display_name?.trim() && (!!profile.data.organization_selection_completed_at || memberships.data.length > 0),
         activities: mergeActivities(latestLocal.activities, history.data),
       });
       const id = await installation(userId);
@@ -75,6 +75,24 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
     } finally { if (request === sequence.current) setBusy(false); }
   }, []);
   const refresh = async () => { if (current.current.userId) await connect(current.current.userId, current.current.membershipId); };
+  // Refresh only energy after a successful activity; profile/catalog/history are unchanged.
+  const refreshEnergy = async () => {
+    const token = generation.current;
+    const request = ++sequence.current;
+    setBusy(false);
+    const result = await apiRequest('/me/energy');
+    if (!valid(token) || request !== sequence.current) return;
+    const days = new Map(dataRef.current.energy?.days.map(day => [day.date, day]) ?? []);
+    for (const day of result.data.days) days.set(day.date, day);
+    update({ ...dataRef.current, energy: { ...result.data, days: [...days.values()] } });
+  };
+  const requestReturn = async () => {
+    const token = generation.current;
+    const result = await apiRequest('/me/vitality-pause/return', { method: 'POST' });
+    if (!valid(token)) return;
+    if (dataRef.current.energy?.protection) update({ ...dataRef.current, energy: { ...dataRef.current.energy, protection: { ...dataRef.current.energy.protection, return_requested_on: result.data.return_requested_on } } });
+    await refreshEnergy();
+  };
   const login = async () => {
     closing.current = false;
     generation.current++; update(emptyJourney); setError('');
@@ -82,7 +100,7 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
     await connect(user.id);
   };
   const selectMembership = async (id: string) => {
-    if (!current.current.userId || !dataRef.current.memberships.some(member => member.id === id)) throw new Error('Vínculo indisponível.');
+    if (!current.current.userId || (id !== 'personal' && !dataRef.current.memberships.some(member => member.id === id))) throw new Error('Vínculo indisponível.');
     generation.current++;
     await connect(current.current.userId, id);
   };
@@ -145,7 +163,7 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
       if (!valid(token)) return;
       patch({ ...fromServer(result.data) });
       // A successful post remains successful even when refreshing the summary fails.
-      await refresh().catch(() => {});
+      await refreshEnergy().catch(() => {});
     } catch (failure) {
       patch({ status: 'failed', error: failure instanceof Error ? failure.message : 'Não foi possível enviar. Tente novamente.' });
       if (failure instanceof ApiError && failure.status === 403) {
@@ -167,7 +185,7 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
     const token = generation.current;
     setBusy(true);
     try {
-      const page = await apiRequest(`/memberships/${membershipId}/activities?per_page=20&cursor=${encodeURIComponent(cursor)}`);
+      const page = await apiRequest(`/memberships/personal/activities?per_page=20&cursor=${encodeURIComponent(cursor)}`);
       if (!valid(token)) return;
       commit({ ...current.current, activities: mergeActivities(current.current.activities, page.data) });
       update({ ...dataRef.current, nextCursor: page.next_cursor });
@@ -207,5 +225,5 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
     update(emptyJourney); setBusy(false);
     commit({ ...current.current, session: 'expired', accepted: false });
   };
-  return { data, busy, error, connect, login, selectMembership, acceptConsent, saveProfile, saveGoal, enqueue, send, refresh, loadMore, loadEnergyMonth, logout, expire };
+  return { data, busy, error, connect, login, selectMembership, acceptConsent, saveProfile, saveGoal, requestReturn, enqueue, send, refresh, loadMore, loadEnergyMonth, logout, expire };
 }

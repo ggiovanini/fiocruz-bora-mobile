@@ -10,6 +10,7 @@ import {
   Field,
   Notice,
 } from "@/ui/Flow";
+import { OrganizationChoice } from './OrganizationRegistration';
 import LoginScreen from "./access/LoginScreen";
 import { ParticipantAvatar } from "./avatar/ParticipantAvatar";
 import { hasAccess, useMock } from "@/mocks/MockProvider";
@@ -19,6 +20,7 @@ import { apiEnabled } from "@/api/session";
 type Step =
   | "login"
   | "organization"
+  | "organization-waiting"
   | "consent"
   | "profile"
   | "error"
@@ -27,9 +29,12 @@ type Step =
 export default function Onboarding() {
   const { state, dispatch, api } = useMock();
   const router = useRouter();
+  const pendingRegistration = api.data.registrations.find(item => item.status === 'pending');
+  const [waitingAcknowledged, setWaitingAcknowledged] = useState(false);
+  const needsOrganization = apiEnabled && !api.data.profile?.organization_selection_completed_at && api.data.memberships.length === 0;
   const firstStep: Step =
     state.session === "active"
-      ? apiEnabled && !state.membershipId ? "organization" : state.accepted
+      ? needsOrganization ? "organization" : pendingRegistration && !waitingAcknowledged && !state.accepted ? "organization-waiting" : state.accepted
         ? "profile"
         : "consent"
       : "login";
@@ -40,13 +45,13 @@ export default function Onboarding() {
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     if (!apiEnabled || state.session !== 'active') return;
-    setStep(!state.membershipId ? 'organization' : !state.accepted ? 'consent' : 'profile');
+    setStep(needsOrganization ? 'organization' : pendingRegistration && !waitingAcknowledged && !state.accepted ? 'organization-waiting' : !state.accepted ? 'consent' : 'profile');
     setName(state.name);
-  }, [state.session, state.membershipId, state.accepted]);
+  }, [state.session, state.membershipId, state.accepted, needsOrganization, pendingRegistration?.id, waitingAcknowledged]);
   useEffect(() => { setAccepted(false); }, [api.data.consent?.policy_version, state.membershipId]);
   const policyAvailable = !apiEnabled || !!(api.data.consent?.configured && (api.data.consent.document_version || api.data.consent.policy_url));
-  if (hasAccess(state)) return <Redirect href="/" />;
-  async function login(multiple = false) {
+  if (hasAccess(state) && !needsOrganization) return <Redirect href="/" />;
+  async function login() {
     if (loading) return;
     if (state.offline) {
       setLoginError(
@@ -65,19 +70,18 @@ export default function Onboarding() {
       return;
     }
     dispatch({ type: "patch", value: { session: "active" } });
-    setStep(multiple ? "organization" : state.accepted ? "profile" : "consent");
+    setStep(state.accepted ? "profile" : "organization");
   }
   if (step === "login") return <LoginScreen
-    loading={loading} apiMode={apiEnabled}
+    loading={loading}
     expired={state.session === "expired"} offline={state.offline} error={loginError}
-    onLogin={() => login()} onMultiple={() => login(true)}
-    onFailure={() => setStep("error")} onIneligible={() => setStep("ineligible")}
-    onPresentation={() => router.push('/presentation')}
+    onLogin={() => login()}
     onReconnect={() => { dispatch({ type: "patch", value: { offline: false } }); setLoginError(""); }}
   />;
   const title = {
-    organization: "Seu vínculo",
-    consent: "Sua participação",
+    organization: "De onde você vem?",
+    "organization-waiting": "Sua escolha está salva!",
+    consent: "Do seu jeito",
     profile: "Vamos nos conhecer",
     error: "Não foi possível entrar",
     ineligible: "Vínculo não encontrado",
@@ -88,6 +92,7 @@ export default function Onboarding() {
       {!!loginError && <Notice>{loginError}</Notice>}
       {step === "organization" && (
         <>
+          {apiEnabled && needsOrganization ? <OrganizationChoice /> : <>
           <Copy>
             Escolha a organização para continuar.
           </Copy>
@@ -97,15 +102,24 @@ export default function Onboarding() {
               setLoginError('');
               try {
                 if (apiEnabled) await api.selectMembership(org.id);
-                else { dispatch({ type: 'patch', value: { organization: org.name } }); setStep(state.accepted ? 'profile' : 'consent'); }
+                else { dispatch({ type: 'patch', value: { organization: org.name } }); setStep('organization-waiting'); }
               } catch (error) { setLoginError(error instanceof Error ? error.message : 'Não foi possível selecionar o vínculo.'); }
             }} />
           ))}
           {apiEnabled && api.data.memberships.length === 0 && <Copy>Nenhum vínculo ativo foi encontrado para sua conta.</Copy>}
           {apiEnabled && <Button secondary title="Atualizar vínculos" onPress={() => { void api.refresh().catch(() => {}); }} />}
 
+          </>}
+
         </>
       )}
+      {step === "organization-waiting" && <>
+        <ParticipantAvatar introductory height={180} />
+        <Copy>Você escolheu {pendingRegistration?.organization_name ?? state.organization}.</Copy>
+        <Copy>Agora, uma pessoa da sua organização vai confirmar que você faz parte dela. Pode levar um tempinho.</Copy>
+        <Card title="Sua jornada já pode começar"><Copy>Enquanto isso, você pode registrar atividades e acompanhar sua evolução. A confirmação aparece no seu perfil quando estiver tudo pronto.</Copy></Card>
+        <Button title="Bóra continuar" onPress={() => { setWaitingAcknowledged(true); setStep('organization-waiting'); }} />
+      </>}
       {step === "consent" && (
         <>
           <Card title="Participação voluntária">
@@ -155,7 +169,7 @@ export default function Onboarding() {
       {step === "profile" && (
         <>
           <ParticipantAvatar introductory height={220} />
-          <Copy muted>Este é o personagem Bóra, o mesmo para todos os participantes.</Copy>
+          <Copy muted>O Bean vai acompanhar você nessa jornada. Bóra se conhecer?</Copy>
           <Field
             label="Nome de exibição"
             value={name}

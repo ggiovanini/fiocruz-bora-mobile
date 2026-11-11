@@ -114,3 +114,27 @@ O cabeçalho não exibe o perfil enquanto o participante não tem acesso complet
 **Cenários de demonstração** é uma seção expansível com reapresentação, múltiplos vínculos, falha no acesso e vínculo não elegível, com descrições curtas. **Rever apresentação inicial** também aparece em Controles de demonstração. Ambos abrem a rota pública `/presentation`, que reutiliza as três telas existentes. Concluir ou pular volta à tela de origem (ou ao fluxo adequado se não houver histórico). O botão final manual é **Voltar ao app**. Não altera dados do participante, sessão, rascunhos ou a preferência persistida de primeira abertura; a apresentação automática continua exclusiva da primeira conclusão.
 
 Verificado no iOS: login sem botão de perfil, abertura dos cenários, três telas de reapresentação e retorno ao mesmo login com os cenários ainda abertos. TypeScript e 54 testes aprovados.
+
+## Simplificação de Meu nível · 09/11/2026
+
+A visão principal de /levels prioriza nível, Vitalidade (PV) e próximo marco com progresso e PV restantes. Substitui a apresentação anterior de EV acumulados lado a lado com PV: o saldo histórico permanece disponível em “Como funciona”, junto às regras e, na demonstração, às faixas e ao simulador. O acesso abre um modal Sheet. Nenhuma regra de concessão, desgaste ou faixa foi alterada; o modo conectado usa os valores oficiais da API.
+
+## Meu acompanhamento · 09/11/2026
+
+A tela antes chamada Minha constância passa a Meu acompanhamento, com atalhos atualizados na home e no perfil. Na semana e no mês, verde identifica energia física, azul identifica mental e duas metades de tamanho fixo indicam presença das duas, sem proporção. Meta pendente usa somente contorno colorido; meta atingida usa preenchimento. A soma continua permitindo atingir a meta com uma única energia. A legenda aparece nas duas visualizações e a leitura acessível de cada data informa energias e estado da meta.
+
+## Meu ritmo · ajuste de 09/11/2026
+
+Título e atalhos passam a Meu ritmo. O resumo da sequência não exibe mais a folha nem a frase de abertura. Semana/Mês usam seletores de texto sem borda, agrupados junto ao calendário com intervalo de 4 pontos. Removido Ver mês do card semanal. O título mensal capitaliza somente a primeira letra, preservando “de” em minúsculas (ex.: Novembro de 2026).
+
+## Atalhos de energia e seletor de meta · 09/11/2026
+
+Os rótulos dos rings da home trazem indicadores decorativos: + em círculo verde para Física e azul para Mental, e lápis em círculo claro para Meta. A área clicável continua sendo o ring completo. A edição da meta passa a usar slider inteiro de 15 a 240 EV, com valor e extremos visíveis, suporte a ajustes por acessibilidade e teclado web. Valores antigos fora da faixa são limitados apenas na proposta de edição; só Salvar altera/agendará a meta. A API mantém a vigência amanhã e a demonstração atualiza sua prévia.
+
+## Perfil: nível, Vitalidade e organização · 09/11/2026
+
+O perfil substitui a imagem do Bean pelo mesmo gráfico de nível e Vitalidade da tela Meu nível. Removido o card redundante de nível/PV/EV acumulados; detalhes continuam em Evolução. Organização é somente consulta após o cadastro no perfil, nas configurações e na rota Minha organização. Pedidos pendentes mostram “Aguardando aprovação do RH ou administrador da organização”, com orientação de que a jornada pessoal continua disponível. Alterações são encaminhadas ao RH/admin pelo painel. O servidor também rejeita novas escolhas após a conclusão do cadastro ou existência de vínculo/pedido anterior, preservando replay idempotente.
+
+## Equipes · 09/11/2026
+
+Equipes usa o mesmo topo ListScreen de Eventos, com ícone de pessoas e busca recolhível por nome/descrição. Abas de texto “Minhas” (inicial) e “Outras” separam participações atuais das equipes abertas. Cards compactos usam nome, indicador de participação e até duas linhas de descrição. O toque abre Sheet na base com descrição completa e ação de entrar/sair. Equipes pausadas permanecem em Minhas e permitem saída. A busca se mantém ao alternar abas. Contagem, atualização, paginação e estados vazios/erros seguem a aba e o termo ativos. O atalho de Configurações agora se chama Equipes.

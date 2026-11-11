@@ -34,11 +34,12 @@ test('API catalogue controls classification, custom names and the seven-day date
 });
 test('history reconciles a lost response by client identity without duplicating pending rows or inventing EV',()=>{
  const activity=prepareActivity(draft,[item],'member','2026-10-20');
- const row={id:'server-id',client_activity_id:activity.id,membership_id:'member',activity_type:'walking',activity_name:'Caminhada atualizada',activity_date:activity.date,duration_seconds:1800,created_at:activity.createdAt,validation_status:'approved',scoring:{awarded_ev:15,energy_dimension:'physical'}};
+ const row={id:'server-id',source:'apple_health',client_activity_id:activity.id,membership_id:'member',activity_type:'walking',activity_name:'Caminhada atualizada',activity_date:activity.date,duration_seconds:1800,created_at:activity.createdAt,validation_status:'approved',scoring:{awarded_ev:15,energy_dimension:'physical'}};
  const merged=mergeActivities([{...activity,status:'failed',error:'Resposta perdida'}],[row]);
  assert.equal(merged[0].error,undefined);assert.equal(merged.length,1);assert.equal(merged[0].status,'confirmed');assert.equal(merged[0].awardedEv,15);
  assert.equal(merged[0].operationKey,activity.operationKey);
+ assert.equal(merged[0].source,'apple_health');assert.equal(merged[0].energyDimension,'physical');
  assert.equal(mergeActivities(merged,[row]).length,1);
  const pending=mergeActivities([], [{...row,validation_status:'pending',scoring:{awarded_ev:null,energy_dimension:null}}]);
- assert.equal(pending[0].awardedEv,null);assert.equal(pending[0].validationStatus,'pending');
+ assert.equal(pending[0].awardedEv,null);assert.equal(pending[0].validationStatus,'pending');assert.equal(pending[0].energyDimension,undefined);
 });

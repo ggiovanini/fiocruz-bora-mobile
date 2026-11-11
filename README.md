@@ -42,6 +42,10 @@ A demonstração inclui quatro abas, primeiro acesso, atividades com persistênc
 
 O Perfil agora oferece leitura real de passos e treinos dos últimos sete dias, mediante autorização, com atualização automática durante o uso e opção manual. Os dados permanecem somente em memória, sem envio à API ou pontuação. Consulte [o escopo e o roteiro para aparelhos reais](docs/integracao-saude.md). É necessário recompilar o app; Expo Go não é compatível.
 
+## Compilação Android
+
+Para alinhar pacote, versão, ícones e plugins com o projeto nativo, consulte [build Android](docs/build-android.md). O prebuild deve ser seguido de uma nova compilação e instalação.
+
 ## Compilação iOS
 
 O projeto compila os módulos Expo localmente e aplica uma compatibilidade do ExpoModulesJSI com Swift 6.4 no `postinstall`. Instruções e motivo em [docs/build-ios.md](docs/build-ios.md).

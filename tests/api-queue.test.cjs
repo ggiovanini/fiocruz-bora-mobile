@@ -6,7 +6,7 @@ const path=require('node:path');
 const ts=require('typescript');
 const React=require('react');
 const {renderToString}=require('react-dom/server');
-function harness(){
+function harness(options={}){
  const storage=new Map();
  const calls=[];
  let release;
@@ -14,15 +14,16 @@ function harness(){
  const current={current:{version:1,session:'active',accepted:true,profileComplete:true,userId:'user',membershipId:'member',activities:[],checkins:[],name:'Pessoa',organization:'Org'}};
  const writes={current:Promise.resolve()};
  const files=new Map();
- const serverRow=payload=>({id:`server-${payload.client_activity_id}`,client_activity_id:payload.client_activity_id,membership_id:'member',activity_type:'walking',activity_name:'Caminhada',activity_date:'2026-10-20',duration_seconds:60,created_at:'2026-10-20T12:00:00Z',validation_status:'approved',scoring:{awarded_ev:1,energy_dimension:'physical'}});
+ const serverRow=payload=>({id:`server-${payload.client_activity_id}`,client_activity_id:payload.client_activity_id,membership_id:options.memberships?.length === 0 ? null : 'member',activity_type:'walking',activity_name:'Caminhada',activity_date:'2026-10-20',duration_seconds:60,created_at:'2026-10-20T12:00:00Z',validation_status:'approved',scoring:{awarded_ev:1,energy_dimension:'physical'}});
  const request=async(url,init={})=>{
   calls.push({url,init});
   if(init.method==='POST'&&url.endsWith('/activities')){
    if(calls.filter(call=>call.init.method==='POST').length===1)await lock;
    return {data:serverRow(JSON.parse(init.body))};
   }
-  if(url==='/me')return {data:{id:'user',display_name:'Pessoa'}};
-  if(url==='/me/memberships')return {data:[{id:'member',organization_name:'Org'}]};
+  if(url==='/me')return {data:{id:'user',display_name:'Pessoa',organization_selection_completed_at:options.completed ?? null}};
+  if(url==='/me/memberships')return {data:options.memberships ?? [{id:'member',organization_name:'Org'}]};
+  if(url==='/me/organization-requests')return {data:options.registrations ?? []};
   if(url==='/me/energy')return {data:{today:{date:'2026-10-20'},days:[]}};
   if(url==='/activity-types')return {data:[]};
   if(url.endsWith('/consents/activity-recording'))return {data:{configured:true,status:'granted',policy_version:'v1'}};
@@ -76,4 +77,28 @@ test('logging out stops the remaining queue and ignores a late success from the 
  assert.equal(h.current.current.session,'signedOut');
  assert.equal(h.current.current.activities.length,0);
  assert.equal(h.calls.filter(call=>call.init.method==='POST'&&call.url.endsWith('/activities')).length,1);
+});
+
+test('a first authenticated profile without membership enters the personal journey and must complete the organization step',async()=>{
+ const h=harness({memberships:[]});
+ await h.api.connect('user');
+ assert.equal(h.current.current.membershipId,'personal');
+ assert.equal(h.current.current.profileComplete,false);
+ assert.ok(h.calls.some(call=>call.url==='/memberships/personal/consents/activity-recording'));
+ assert.ok(h.calls.some(call=>call.url==='/memberships/personal/activities?per_page=20'));
+});
+test('a pending or rejected organization never becomes a membership and a delayed confirmation preserves the personal queue',async()=>{
+ const options={memberships:[],completed:'2026-10-20T12:00:00Z',registrations:[{id:'request',status:'pending',organization_name:'Org'}]};
+ const h=harness(options);
+ await h.api.connect('user');
+ assert.equal(h.current.current.profileComplete,true);
+ const first={...h.activity('personal'),membershipId:'personal'};
+ h.current.current.activities=[first];
+ options.registrations[0].status='confirmed';options.memberships=[{id:'approved',organization_name:'Org'}];
+ await h.api.refresh();
+ assert.equal(h.current.current.membershipId,'personal');
+ assert.equal(h.current.current.activities[0].membershipId,'personal');
+ h.release();await h.api.send(first);
+ assert.ok(h.calls.some(call=>call.init.method==='POST'&&call.url==='/memberships/personal/activities'));
+ assert.equal(h.current.current.activities[0].status,'confirmed');
 });

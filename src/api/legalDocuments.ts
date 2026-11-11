@@ -1,3 +1,4 @@
+import { getApiBaseUrl } from './config';
 export type LegalDocument = {
   id: string;
   slug: string;
@@ -14,7 +15,7 @@ export type LegalDocumentSummary = Omit<LegalDocument, 'content'>;
 
 // Public content: never send the user's token to retrieve these documents.
 export async function fetchLegalDocuments(slug?: string, version?: string): Promise<LegalDocument | LegalDocumentSummary[]> {
-  const base = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '');
+  const base = getApiBaseUrl();
   if (!base) throw new Error('Os documentos estarão disponíveis quando a conexão com a API for configurada.');
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);

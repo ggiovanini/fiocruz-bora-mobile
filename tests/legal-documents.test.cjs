@@ -4,6 +4,7 @@ const { readFileSync } = require('node:fs');
 const ts = require('typescript');
 const Module = require('node:module');
 const model = new Module('legalDocuments');
+model.require = name => { if (name === './config') return { getApiBaseUrl: () => process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') ?? '' }; throw new Error(name); };
 model._compile(ts.transpileModule(readFileSync('src/api/legalDocuments.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
 }).outputText, 'legalDocuments.cjs');

@@ -36,8 +36,9 @@ export function prepareActivity(draft: Draft, catalog: CatalogItem[], membership
 }
 export function fromServer(row: ServerActivity): Activity {
   return { id: row.client_activity_id, serverId: row.id, type: row.activity_name, activityCode: row.activity_type,
-    minutes: String(row.duration_seconds / 60), date: row.activity_date, createdAt: row.created_at,
-    status: 'confirmed', error: undefined, validationStatus: row.validation_status, awardedEv: row.scoring.awarded_ev, membershipId: row.membership_id };
+    minutes: String(row.duration_seconds / 60), date: row.activity_date, createdAt: row.created_at, source: row.source,
+    energyDimension: row.scoring.energy_dimension === 'physical' || row.scoring.energy_dimension === 'intellectual' ? row.scoring.energy_dimension : undefined,
+    status: 'confirmed', error: undefined, validationStatus: row.validation_status, awardedEv: row.scoring.awarded_ev, membershipId: row.membership_id ?? 'personal' };
 }
 export function mergeActivities(local: Activity[], remote: ServerActivity[]): Activity[] {
   const rows = new Map(local.map(item => [item.id, item]));

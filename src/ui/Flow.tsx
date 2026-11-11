@@ -1,4 +1,4 @@
-import type { PropsWithChildren, Ref } from "react";
+import type { PropsWithChildren, ReactNode, Ref } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -10,7 +10,7 @@ import {
   type TextInputProps,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { AppHeader } from "@/components/AppHeader";
+import { AppHeader, APP_HEADER_HEIGHT, useHeaderScroll } from "@/components/AppHeader";
 import { colors } from "@/design/tokens";
 import { apiEnabled } from "@/api/session";
 import { useMock } from "@/mocks/MockProvider";
@@ -21,16 +21,22 @@ export function Flow({
   demo = true,
   scrollRef,
   tag,
-}: PropsWithChildren<{ title: string; back?: boolean; demo?: boolean; tag?: string; scrollRef?: Ref<ScrollView> }>) {
+  centered = false,
+  footer,
+}: PropsWithChildren<{ title: string; back?: boolean; demo?: boolean; tag?: string; scrollRef?: Ref<ScrollView>; centered?: boolean; footer?: ReactNode }>) {
   const { state, storageError, api } = useMock();
+  const headerScroll = useHeaderScroll();
   return (
-    <SafeAreaView edges={["top", "left", "right"]} style={styles.safe}>
-      <AppHeader back={back} />
+    <SafeAreaView edges={footer ? ["top", "left", "right", "bottom"] : ["top", "left", "right"]} style={styles.safe}>
+      <AppHeader back={back} scrollY={headerScroll.scrollY} />
       <ScrollView
         ref={scrollRef}
+        onScroll={headerScroll.onScroll}
+        scrollEventThrottle={16}
+        style={styles.scroll}
         keyboardShouldPersistTaps="handled"
         automaticallyAdjustKeyboardInsets
-        contentContainerStyle={styles.body}
+        contentContainerStyle={[styles.body, centered && styles.focusedBody]}
       >
         {tag && <Text style={styles.tag}>{tag}</Text>}
         <Text accessibilityRole="header" style={styles.title}>
@@ -46,8 +52,9 @@ export function Flow({
           </Notice>
         )}
         {apiEnabled && state.session === 'active' && !!api.error && <><Notice>{api.error}</Notice><Button title="Tentar novamente" disabled={api.busy} onPress={() => { void api.refresh().catch(() => {}); }} /></>}
-        {children}
+        {centered ? <View style={styles.centeredContent}>{children}</View> : children}
       </ScrollView>
+      {footer && <View style={styles.footer}>{footer}</View>}
     </SafeAreaView>
   );
 }
@@ -132,7 +139,9 @@ export function Check({
   label,
   value,
   onChange,
+  disabled = false,
 }: {
+  disabled?: boolean;
   label: string;
   value: boolean;
   onChange: (value: boolean) => void;
@@ -140,9 +149,10 @@ export function Check({
   return (
     <Pressable
       accessibilityRole="checkbox"
-      accessibilityState={{ checked: value }}
+      accessibilityState={{ checked: value, disabled }}
+      disabled={disabled}
       onPress={() => onChange(!value)}
-      style={styles.check}
+      style={[styles.check, disabled && styles.disabled]}
     >
       <Text style={styles.checkbox}>{value ? "☑" : "☐"}</Text>
       <Text style={[styles.copy, styles.flex]}>{label}</Text>
@@ -150,6 +160,10 @@ export function Check({
   );
 }
 export const styles = StyleSheet.create({
+  scroll: { flex: 1 },
+  focusedBody: { flexGrow: 1, paddingBottom: 16 },
+  centeredContent: { flexGrow: 1, justifyContent: "center", gap: 16 },
+  footer: { width: "100%", maxWidth: 520, alignSelf: "center", paddingHorizontal: 24, paddingTop: 12, paddingBottom: 12, gap: 12 },
   safe: { flex: 1, backgroundColor: colors.background },
   header: {
     flexDirection: "row",
@@ -168,7 +182,7 @@ export const styles = StyleSheet.create({
   },
   tag: { color: colors.muted, fontFamily: "Montserrat_500Medium", fontSize: 9, letterSpacing: 2 },
   back: { fontSize: 40, color: colors.primary, minWidth: 32 },
-  body: { padding: 24, paddingTop: 12, paddingBottom: 40, gap: 16, width: "100%", maxWidth: 520, alignSelf: "center" },
+  body: { padding: 24, paddingTop: APP_HEADER_HEIGHT + 12, paddingBottom: 40, gap: 16, width: "100%", maxWidth: 520, alignSelf: "center" },
   title: {
     fontFamily: "Montserrat_700Bold",
     fontSize: 27,
