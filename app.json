@@ -29,7 +29,7 @@
       "permissions": [
         "android.permission.health.READ_EXERCISE"
       ],
-      "versionCode": 157
+      "versionCode": 158
     },
     "web": {
       "favicon": "./assets/favicon.png"

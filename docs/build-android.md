@@ -82,3 +82,11 @@ Se a sincronização falhar com `Cannot run program "node"`, encerre completamen
 ## Java do Gradle
 
 `android/gradle/gradle-daemon-jvm.properties` fixa `toolchainVersion=17`, usando o JDK 17 instalado. A seleção de Java 25 pelo assistente do Android Studio causou falhas na configuração CMake de módulos nativos com a mensagem `A restricted method in java.lang.System has been called`. O atalho de abertura também usa JDK 17.
+
+## Versão 1.0.2 · build 158 · 12/11/2026
+
+Android incrementado de 157 para 158 em `app.json` e `android/app/build.gradle`, alinhado ao build iOS 158. Prebuild Android executado sem limpeza e sem reinstalar dependências.
+
+A compilação Release gerou APK e AAB com Node 20.19.4, JDK 17 e as quatro arquiteturas configuradas no projeto. A chave de upload existente, guardada fora do repositório, foi aplicada por uma configuração temporária do Gradle; senhas e chave não foram adicionadas ao projeto. A configuração padrão de assinatura do template não é a usada nesses dois arquivos distribuíveis.
+
+Arquivos `bora-1.0.2-158.apk` e `bora-1.0.2-158.aab` salvos na pasta local de assinatura Android do projeto. A versão e o pacote do APK foram conferidos com AAPT; APK e AAB tiveram suas assinaturas verificadas e comparadas ao certificado de upload existente. O build usa a API definida em `.env.testflight` e desabilita login local. Esta preparação não envia arquivos à Google Play nem inclui teste em aparelho.
