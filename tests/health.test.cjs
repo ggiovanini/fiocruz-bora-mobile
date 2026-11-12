@@ -292,7 +292,7 @@ test("automatic updates require connection, run immediately then every five minu
   f.updates.stop();
   assert.equal(f.timers.size, 0);
 });
-test("background and short foreground returns do not read; stale return updates once", async () => {
+test("foreground returns restore pending readings immediately without waiting five minutes", async () => {
   let reads = 0;
   const session = new HealthSession(
     adapter({
@@ -310,14 +310,14 @@ test("background and short foreground returns do not read; stale return updates 
   await f.advance(60000);
   f.updates.setActive(true);
   await f.flush();
-  assert.equal(reads, 1);
+  assert.equal(reads, 2);
   f.updates.setActive(false);
   await f.advance(300000);
-  assert.equal(reads, 1);
+  assert.equal(reads, 2);
   assert.equal(f.timers.size, 0);
   f.updates.setActive(true);
   await f.flush();
-  assert.equal(reads, 2);
+  assert.equal(reads, 3);
   f.updates.stop();
 });
 test("restored preference never requests permissions and disabled automatic updates allow manual reads", async () => {
@@ -366,12 +366,12 @@ test("automatic failures are throttled and disconnect stops future reads", async
   f.updates.setActive(false);
   f.updates.setActive(true);
   await f.flush();
-  assert.equal(reads, 1);
-  await f.advance(300000);
   assert.equal(reads, 2);
+  await f.advance(300000);
+  assert.equal(reads, 3);
   session.disconnect();
   await f.advance(300000);
-  assert.equal(reads, 2);
+  assert.equal(reads, 3);
   assert.equal(f.timers.size, 0);
   f.updates.stop();
 });

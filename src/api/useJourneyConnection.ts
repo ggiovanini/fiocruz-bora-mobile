@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useRef, useState, type MutableRefObject } from 'react';
 import { Platform } from 'react-native';
 import { initialState, restoreState, type Activity, type Draft, type MockState } from '../mocks/model';
-import { apiRequest, clearApiSession, loginForTesting, ApiError } from './session';
+import { apiRequest, clearApiSession, loginInstitutional, sessionInstallation, ApiError } from './session';
 import { emptyJourney, type JourneySnapshot, type ServerActivity } from './contracts';
 import { fromServer, mergeActivities, prepareActivity, uuid } from './activityMapping';
 
@@ -19,6 +19,8 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
   const update = (next: JourneySnapshot) => { dataRef.current = next; setData(next); };
   const valid = (token: number) => token === generation.current;
   const installation = async (user: string) => {
+    const authenticated = await sessionInstallation(user);
+    if (authenticated) return authenticated;
     const key = `bora:installation:v1:${user}`;
     let id = await AsyncStorage.getItem(key);
     if (!id) { id = uuid(); await AsyncStorage.setItem(key, id); }
@@ -96,7 +98,7 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
   const login = async () => {
     closing.current = false;
     generation.current++; update(emptyJourney); setError('');
-    const user = await loginForTesting();
+    const user = await loginInstitutional();
     await connect(user.id);
   };
   const selectMembership = async (id: string) => {
@@ -131,6 +133,11 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
     const result = await apiRequest('/me/energy/goal', { method: 'PUT', body: JSON.stringify({ goal_ev: goal }) });
     if (valid(token) && dataRef.current.energy) update({ ...dataRef.current, energy: { ...dataRef.current.energy, scheduled_goal: result.data } });
     return result.data as { goal_ev: number; effective_from: string };
+  };
+  const cancelGoal = async () => {
+    const token = generation.current;
+    await apiRequest('/me/energy/goal', { method: 'DELETE' });
+    if (valid(token) && dataRef.current.energy) update({ ...dataRef.current, energy: { ...dataRef.current.energy, scheduled_goal: null } });
   };
   const enqueue = async (draft: Draft) => {
     const s = current.current;
@@ -225,5 +232,5 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
     update(emptyJourney); setBusy(false);
     commit({ ...current.current, session: 'expired', accepted: false });
   };
-  return { data, busy, error, connect, login, selectMembership, acceptConsent, saveProfile, saveGoal, requestReturn, enqueue, send, refresh, loadMore, loadEnergyMonth, logout, expire };
+  return { data, busy, error, connect, login, selectMembership, acceptConsent, saveProfile, saveGoal, cancelGoal, requestReturn, enqueue, send, refresh, loadMore, loadEnergyMonth, logout, expire };
 }

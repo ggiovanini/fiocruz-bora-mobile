@@ -4,6 +4,8 @@ import { importPayload } from './importPayload';
 
 const mapping:Record<string,string>={Caminhada:'walking',Corrida:'running','Corrida em esteira':'running',Ciclismo:'cycling','Natação':'swimming',Yoga:'yoga'};
 export const workoutActivityCode=(workout:HealthWorkout)=>mapping[workout.kind] ?? '';
+export type WorkoutPreference={activity_type:string;energy_dimension?:'physical'|'intellectual'};
+export const preferenceKey=(workout:HealthWorkout)=>workout.nativeType ? `${workout.source}:${workout.nativeType}` : '';
 export type ImportStatus={status:'sending'|'imported'|'review'|'failed';message?:string;awardedEv?:number|null;retryable?:boolean;blockBatch?:boolean;cycle?:string};
 export type WorkoutPayload=ReturnType<typeof importPayload> & {import_mode:'manual'|'automatic'};
 export class HealthImportQueue {
@@ -41,7 +43,7 @@ export class HealthImportQueue {
     }});
     this.pending.set(workout.id,task);return task;
   }
-  async automatic(workouts:HealthWorkout[],catalog:CatalogItem[],cycle:string,allowed:()=>boolean):Promise<boolean> {
+  async automatic(workouts:HealthWorkout[],catalog:CatalogItem[],cycle:string,allowed:()=>boolean,preferences:Record<string,WorkoutPreference>={}):Promise<boolean> {
     if(this.batching || this.stopped || this.pausedCycle===cycle || !allowed())return false;
     this.batching=true;let imported=false;
     try {
@@ -51,11 +53,12 @@ export class HealthImportQueue {
         const prior=this.state[workout.id];
         if(prior?.status==='imported' || prior?.status==='sending' || prior?.cycle===cycle)continue;
         if(prior?.status==='review' && prior.retryable===false)continue;
-        const item=catalog.find(item=>item.code===workoutActivityCode(workout) && !item.requires_custom_name);
-        if(!item || item.scoring_status!=='configured' || (item.energy_dimension!=='physical' && item.energy_dimension!=='intellectual')) {
+        const preference=preferences[preferenceKey(workout)];
+        const item=catalog.find(item=>item.code===(preference?.activity_type ?? workoutActivityCode(workout)) && !item.requires_custom_name);
+        if(!item || item.scoring_status!=='configured' || (item.energy_dimension!=='physical' && item.energy_dimension!=='intellectual' && !(item.energy_dimension==='choice' && preference?.energy_dimension))) {
           this.update(workout.id,{status:'review',message:'Confira a atividade e a dimensão antes de enviar.',cycle});continue;
         }
-        await this.submit(workout,item.code,undefined,'automatic',allowed,cycle);
+        await this.submit(workout,item.code,item.energy_dimension==='choice'?preference?.energy_dimension:undefined,'automatic',allowed,cycle);
         if(this.state[workout.id]?.status==='imported')imported=true;
         if(this.state[workout.id]?.blockBatch){this.pausedCycle=cycle;break;}
       }

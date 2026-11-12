@@ -72,7 +72,7 @@ test('a changed login cannot send an earlier accounts health payload using the n
  const originalFetch=global.fetch;let sent=0;
  global.fetch=async()=>{sent++;throw new Error('Should not send');};
  try {
-  const {apiRequest}=load('src/api/session.ts',{'./config':{getApiBaseUrl:()=> 'https://api.example.test/api/v1'},'@react-native-async-storage/async-storage':{getItem:async()=>JSON.stringify({token:'new-token',user:{id:'new-user'}})}});
+  const {apiRequest}=load('src/api/session.ts',{'./config':{getApiBaseUrl:()=> 'https://api.example.test/api/v1'},'./credentialStorage':{credentialStorage:{get:async()=>JSON.stringify({token:'new-token',user:{id:'new-user'}})}},'./institutionalLogin':{},'./localLogin':{},'@react-native-async-storage/async-storage':{}});
   await assert.rejects(apiRequest('/memberships/personal/health-workouts',{method:'POST',body:'sensitive'},'old-user'),/conta mudou/);
   assert.equal(sent,0);
  } finally {global.fetch=originalFetch;}
@@ -86,4 +86,12 @@ test('a connectivity failure pauses the batch instead of flooding the service wi
  await queue.automatic([workout('one'),workout('two')],catalog,'one',()=>true);assert.deepEqual(sent,['one']);fail=false;
  await queue.automatic([workout('one'),workout('two')],catalog,'two',()=>true);
  assert.deepEqual(sent,['one','one','two']);
+});
+
+test('profile preferences distinguish native modalities and retain the chosen dimension',async()=>{
+ const sent=[];const queue=new HealthImportQueue(async payload=>{sent.push(payload);return ok();});
+ const preferences={'healthkit:50':{activity_type:'yoga',energy_dimension:'physical'}};
+ await queue.automatic([{...workout('strength','Outro treino'),nativeType:'50'},{...workout('cooldown','Outro treino'),nativeType:'80'}],catalog,'one',()=>true,preferences);
+ assert.equal(sent.length,1);assert.equal(sent[0].external_id,'strength');assert.equal(sent[0].energy_dimension,'physical');
+ assert.equal(queue.getSnapshot()['healthkit:cooldown'].status,'review');
 });

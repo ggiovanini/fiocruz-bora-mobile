@@ -76,6 +76,7 @@ const adapter: HealthAdapter = {
           const normalized = normalizeWorkout("health-connect", {
             id: record.metadata?.id ?? "",
             origin: record.metadata?.dataOrigin || "Origem não informada",
+            nativeType: String(record.exerciseType),
             kind: names[record.exerciseType] || "Outro treino",
             start: record.startTime,
             end: record.endTime,

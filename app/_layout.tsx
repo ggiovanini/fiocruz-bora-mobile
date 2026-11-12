@@ -1,3 +1,4 @@
+import { ToastProvider } from '@/ui/Toast';
 import { CelebrationPresenter } from '@/features/celebrations/CelebrationPresenter';
 import { HealthImportProvider } from '@/health/HealthImportProvider';
 import { FirstPermissionSetup } from '@/features/permissions/PermissionSetup';
@@ -124,7 +125,7 @@ function PreviewBoundary() {
 function RootLayout() {
   return (
     <MockProvider>
-      <NotificationProvider><PreviewBoundary /></NotificationProvider>
+      <NotificationProvider><ToastProvider><PreviewBoundary /></ToastProvider></NotificationProvider>
     </MockProvider>
   );
 }

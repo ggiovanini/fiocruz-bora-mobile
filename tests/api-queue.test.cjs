@@ -21,12 +21,12 @@ function harness(options={}){
    if(calls.filter(call=>call.init.method==='POST').length===1)await lock;
    return {data:serverRow(JSON.parse(init.body))};
   }
-  if(url==='/me')return {data:{id:'user',display_name:'Pessoa',organization_selection_completed_at:options.completed ?? null}};
+  if(url==='/me')return {data:{id:'user',display_name:'Pessoa',organization_selection_completed_at:options.completed ?? null,registration_organization:options.registrationOrganization ?? null}};
   if(url==='/me/memberships')return {data:options.memberships ?? [{id:'member',organization_name:'Org'}]};
   if(url==='/me/organization-requests')return {data:options.registrations ?? []};
   if(url==='/me/energy')return {data:{today:{date:'2026-10-20'},days:[]}};
   if(url==='/activity-types')return {data:[]};
-  if(url.endsWith('/consents/activity-recording'))return {data:{configured:true,status:'granted',policy_version:'v1'}};
+  if(url.endsWith('/consents/activity-recording'))return {data:{configured:true,status:options.consentStatus ?? 'granted',policy_version:'v1'}};
   if(url.includes('/activities'))return {data:[],next_cursor:null};
   return {};
  };
@@ -38,7 +38,7 @@ function harness(options={}){
    if(name==='react')return React;
    if(name==='react-native')return {Platform:{OS:'web'}};
    if(name==='@react-native-async-storage/async-storage')return {getItem:async key=>storage.get(key)??null,setItem:async(key,value)=>storage.set(key,value)};
-   if(name==='./session')return {apiRequest:request,clearApiSession:async()=>{},loginForTesting:async()=>({id:'user'}),ApiError:class extends Error{}};
+   if(name==='./session')return {apiRequest:request,clearApiSession:async()=>{},loginInstitutional:async()=>({id:'user'}),sessionInstallation:async()=>null,ApiError:class extends Error{}};
    if(name.startsWith('.'))return load(path.resolve(path.dirname(file),name+'.ts'));
    throw new Error(name);
   };
@@ -101,4 +101,13 @@ test('a pending or rejected organization never becomes a membership and a delaye
  h.release();await h.api.send(first);
  assert.ok(h.calls.some(call=>call.init.method==='POST'&&call.url==='/memberships/personal/activities'));
  assert.equal(h.current.current.activities[0].status,'confirmed');
+});
+
+test('preferred registration opens its confirmed organization while keeping consent pending',async()=>{
+ const probe=harness({memberships:[{id:'preferred-member',organization_id:'preferred-org',organization_name:'Organização preferencial',role:'member'}],completed:'2026-11-12T12:00:00Z',registrationOrganization:{id:'preferred-org',name:'Organização preferencial'},consentStatus:'pending'});
+ await probe.api.connect('user');
+ assert.equal(probe.current.current.membershipId,'preferred-member');
+ assert.equal(probe.current.current.organization,'Organização preferencial');
+ assert.equal(probe.current.current.profileComplete,true);
+ assert.equal(probe.current.current.accepted,false);
 });

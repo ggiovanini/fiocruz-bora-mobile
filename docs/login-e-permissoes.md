@@ -16,7 +16,7 @@ Atualizado em 09/11/2026.
 
 ## Autenticação
 
-A mudança do login é de interface. O botão continua conectado ao fluxo de autenticação atual do projeto, que usa acesso temporário de demonstração quando a API está habilitada. Não foi implementado nem simulado como real um provedor institucional de Login Único nesta entrega.
+Atualização de 11/11/2026: quando a API está configurada, o botão usa o Login Único institucional pelo navegador seguro do sistema, exclusivamente no staging online. A sessão é guardada no armazenamento seguro do aparelho. O fluxo e os requisitos de build estão em [Login Único Fiocruz](login-unico.md). O modo de protótipo sem API permanece separado.
 
 ## Validação
 

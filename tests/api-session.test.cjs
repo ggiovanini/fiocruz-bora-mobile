@@ -3,11 +3,13 @@ const assert=require('node:assert/strict');
 const {readFileSync}=require('node:fs');
 const Module=require('node:module');
 const ts=require('typescript');
-const key='bora:temporary-api-session:v1';
-function setup(t){
+const key='secure-session';
+function setup(t, login = {}){
  const storage=new Map([[key,JSON.stringify({token:'old-token'})]]);
  const file=new Module('session');
  file.require=name=>{if(name==='./config')return {getApiBaseUrl:()=>process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/,'')??''};if(name==='@react-native-async-storage/async-storage')return {getItem:async k=>storage.get(k)??null,setItem:async(k,v)=>storage.set(k,v),removeItem:async k=>storage.delete(k)};throw new Error(name)};
+ const previousRequire=file.require;
+ file.require=name=>name==='./credentialStorage'?{credentialStorage:{get:async()=>storage.get(key)??null,set:async value=>storage.set(key,value),remove:async()=>storage.delete(key)}}:name==='./localLogin'?{useLocalLogin:()=>login.local ?? false,localLogin:login.localLogin}:name==='./institutionalLogin'?{institutionalLogin:login.institutionalLogin ?? (async()=>{throw new Error('Not invoked in session tests')})}:previousRequire(name);
  const previous=process.env.EXPO_PUBLIC_API_URL;process.env.EXPO_PUBLIC_API_URL='https://bora.example/api/v1';
  t.after(()=>{if(previous===undefined)delete process.env.EXPO_PUBLIC_API_URL;else process.env.EXPO_PUBLIC_API_URL=previous;});
  file._compile(ts.transpileModule(readFileSync('src/api/session.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,esModuleInterop:true}}).outputText,'session.cjs');
@@ -48,4 +50,21 @@ test('network failures preserve the token for retry and retain the original oper
  });
  await assert.rejects(api.apiRequest('/activities',{method:'POST',headers:{'Idempotency-Key':'same-key'},body}),error=>error.status===0);
  assert.ok(api.storage.has(key));
+});
+
+test('login selects the local session, persists it and restores it without another random draw',async t=>{
+ let draws=0;
+ const session={token:'demo',user:{id:'demo-id',display_name:'Demo'},expires_at:new Date(Date.now()+3600000).toISOString(),installation_id:'install'};
+ const api=setup(t,{local:true,localLogin:async()=>{draws++;return session;}});
+ api.storage.clear();
+ assert.equal((await api.loginInstitutional()).id,'demo-id');
+ assert.equal(JSON.parse(api.storage.get(key)).installation_id,'install');
+ t.mock.method(globalThis,'fetch',async()=>({ok:true,status:200,json:async()=>({data:session.user})}));
+ assert.equal((await api.loginInstitutional()).id,'demo-id');assert.equal(draws,1);
+});
+test('institutional failures never fall back to demo login',async t=>{
+ const api=setup(t,{local:false,institutionalLogin:async()=>{throw new Error('SSO unavailable')},localLogin:async()=>assert.fail('No demo fallback')});
+ api.storage.clear();
+ await assert.rejects(api.loginInstitutional(),/SSO unavailable/);
+ assert.equal(api.storage.has(key),false);
 });

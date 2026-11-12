@@ -1,3 +1,4 @@
+import { SegmentedTabs } from '@/ui/SegmentedTabs';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
@@ -104,9 +105,7 @@ export default function Constancy() {
 
     </View>
     <View style={s.calendarSection}>
-    <View style={s.viewTabs}>
-      {(['week', 'month'] as const).map(value => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: view === value }} onPress={() => setView(value)} style={s.viewTab}><Text style={[s.viewTabText, view === value && s.viewTabSelected]}>{value === 'week' ? 'Semana' : 'Mês'}</Text></Pressable>)}
-    </View>
+    <SegmentedTabs label="Período do meu ritmo" options={[{ id: 'week', label: 'Semana' }, { id: 'month', label: 'Mês' }]} value={view} onChange={setView}/>
     {view === 'week' && <View style={s.weekCard}>
       <Text style={s.sectionTitle}>Um dia de cada vez</Text>
       <Text style={s.caption}>{formatDate(week[0])} a {formatDate(week[6])}</Text>
@@ -152,10 +151,7 @@ export default function Constancy() {
 
 const s = StyleSheet.create({
   calendarSection: { gap: 4 },
-  viewTabs: { flexDirection: 'row', gap: 24, paddingHorizontal: 18 },
-  viewTab: { minHeight: 44, justifyContent: 'center' },
-  viewTabText: { color: colors.muted, fontFamily: 'Montserrat_500Medium', fontSize: 14 },
-  viewTabSelected: { color: colors.primary, fontFamily: 'Montserrat_700Bold' },
+
   previewTag: { color: colors.muted, fontFamily: 'Montserrat_600SemiBold', fontSize: 9, letterSpacing: 1.5 }, progressDot: { backgroundColor: colors.primary, height: 8, width: 8, borderRadius: 4 },
   intro: { fontFamily: 'Montserrat_400Regular', color: colors.muted, fontSize: 14, lineHeight: 22 },
   streakCard: { borderRadius: 24, borderWidth: 1, borderColor: '#28683E', backgroundColor: '#0A403F', padding: 22, gap: 10 },

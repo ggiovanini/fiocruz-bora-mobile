@@ -43,7 +43,10 @@ export function startAutomaticUpdates(
       if (!active) {
         clock.cancel(timer);
         session.clearReadings();
-      } else update();
+      } else {
+        if (session.getSnapshot().connected) void session.sync(clock.now());
+        update();
+      }
     },
     stop() {
       stopped = true;

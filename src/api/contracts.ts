@@ -1,6 +1,6 @@
 export type Membership = { id: string; organization_id: string; organization_name: string; role: string };
 export type OrganizationRequest = { id: string; organization_id: string; organization_name: string; status: 'pending' | 'confirmed' | 'rejected' | 'cancelled'; created_at: string; reviewed_at: string | null };
-export type Profile = { id: string; display_name: string; email?: string | null; phone?: string | null; organization_selection_completed_at?: string | null };
+export type Profile = { id: string; display_name: string; email?: string | null; phone?: string | null; organization_selection_completed_at?: string | null; registration_organization?: { id: string; name: string } | null };
 export type CatalogItem = {
   code: string; name: string; discovery_group: string; requires_custom_name: boolean;
   energy_dimension: 'physical' | 'intellectual' | 'choice' | null;

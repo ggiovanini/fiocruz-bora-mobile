@@ -7,7 +7,7 @@ import type { ComponentType } from 'react';
 const projectId = Constants.expoConfig?.extra?.eas?.projectId;
 const telemetry: typeof import('expo-observe') | null =
   Platform.OS !== 'android' && typeof projectId === 'string' && projectId.trim() ? require('expo-observe') : null;
-const integrations = { 'expo-router': { filteredParams: ['userId', 'token', 'email'] } };
+const integrations = { 'expo-router': { filteredParams: ['userId', 'token', 'email', 'code', 'state', 'verifier', 'attempt', 'error_description'] } };
 let consentGranted = false;
 
 telemetry?.Observe.configure({ dispatchingEnabled: false, environment: __DEV__ ? 'development' : 'production', integrations });

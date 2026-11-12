@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PropsWithChildren } from 'react';
+import { useEffect, useRef, useState, type PropsWithChildren, type ReactNode } from 'react';
 import { Keyboard, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppHeader, APP_HEADER_HEIGHT, useHeaderScroll } from '@/components/AppHeader';
@@ -18,7 +18,7 @@ export type ListSearch = {
   maxLength?: number;
 };
 /** A list title that compacts first, then leaves with the content. Search is opt-in. */
-export function ListScreen({ title, icon, search, back = true, children }: PropsWithChildren<{ title: string; icon?: IconName; search?: ListSearch; back?: boolean }>) {
+export function ListScreen({ title, icon, search, titleAction, back = true, children }: PropsWithChildren<{ title: string; icon?: IconName; search?: ListSearch; titleAction?: ReactNode; back?: boolean }>) {
   const { state, storageError, api } = useMock();
   const headerScroll = useHeaderScroll();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -54,7 +54,8 @@ export function ListScreen({ title, icon, search, back = true, children }: Props
       <View collapsable={false} style={[s.heading,{paddingVertical:18-12*ratio,transform:[{translateY:collapse}]}]}>
         <View style={s.titleRow}>
           {icon && <Icon name={icon} size={26}/>}
-          <Text accessibilityRole="header" style={[s.title,s.titleBox,{fontSize:27-6*ratio,lineHeight:35-6*ratio}]}>{title}</Text>
+          <Text accessibilityRole="header" numberOfLines={titleAction ? 1 : undefined} adjustsFontSizeToFit={!!titleAction} style={[s.title,s.titleBox,{fontSize:27-6*ratio,lineHeight:35-6*ratio}]}>{title}</Text>
+          {titleAction}
           {search && <Pressable accessibilityRole="button" accessibilityLabel={`${searchOpen ? 'Recolher' : 'Abrir'} busca em ${title}`} accessibilityState={{expanded:searchOpen}} onPress={toggleSearch} style={[s.hit,searchOpen&&s.selected]}><Icon name="search" size={24}/>{!!search.activeQuery && <View style={s.dot}/>}</Pressable>}
         </View>
         {search && searchOpen && <View style={s.searchPanel}>

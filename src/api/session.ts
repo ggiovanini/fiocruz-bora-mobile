@@ -1,12 +1,15 @@
 import { getApiBaseUrl } from './config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { credentialStorage } from './credentialStorage';
+import { institutionalLogin } from './institutionalLogin';
+import { localLogin, useLocalLogin } from './localLogin';
 
-// TEMPORARY test access. Replace with institutional authentication.
+// Institutional credentials are stored in the native secure store.
 const base = getApiBaseUrl();
 export const apiEnabled = !!base;
-const key = 'bora:temporary-api-session:v1';
+const legacyKey = 'bora:temporary-api-session:v1';
 type User = { id: string; display_name: string };
-type Session = { token: string; user: User; expires_at: string };
+type Session = { token: string; user: User; expires_at: string; installation_id: string };
 
 export class ApiError extends Error {
   constructor(public status: number, message: string, public errors: Record<string, string[]> = {}) { super(message); }
@@ -16,7 +19,7 @@ export function onSessionExpired(listener: () => void) { listeners.add(listener)
 
 export async function apiRequest(path: string, init: RequestInit = {}, expectedUserId?: string) {
   if (!apiEnabled) throw new ApiError(0, 'A conexão com o serviço não está configurada.');
-  const raw = await AsyncStorage.getItem(key);
+  const raw = await credentialStorage.get();
   const session: Session | null = raw ? JSON.parse(raw) : null;
   if(expectedUserId && session?.user.id!==expectedUserId)throw new ApiError(401,'A conta mudou. Confira a sessão antes de enviar o treino.');
   const controller = new AbortController();
@@ -28,8 +31,8 @@ export async function apiRequest(path: string, init: RequestInit = {}, expectedU
         ...(session ? { Authorization: `Bearer ${session.token}` } : {}), ...init.headers },
     });
     const body = await response.json().catch(() => ({}));
-    if (response.status === 401 && raw && await AsyncStorage.getItem(key) === raw) {
-      await AsyncStorage.removeItem(key);
+    if (response.status === 401 && raw && await credentialStorage.get() === raw) {
+      await credentialStorage.remove();
       listeners.forEach(listener => listener());
     }
     if (!response.ok) {
@@ -47,30 +50,43 @@ export async function apiRequest(path: string, init: RequestInit = {}, expectedU
 }
 
 export async function restoreApiSession(): Promise<User | null> {
-  const raw = await AsyncStorage.getItem(key);
+  await AsyncStorage.removeItem(legacyKey);
+  const raw = await credentialStorage.get();
   if (!raw) return null;
-  const session: Session = JSON.parse(raw);
-  if (Date.parse(session.expires_at) <= Date.now()) {
-    await AsyncStorage.removeItem(key);
+  let session: Session;
+  try { session = JSON.parse(raw); } catch {
+    await credentialStorage.remove();
+    return null;
+  }
+  if (!session?.token || !session.user?.id || !session.installation_id
+    || !Number.isFinite(Date.parse(session.expires_at)) || Date.parse(session.expires_at) <= Date.now()) {
+    await credentialStorage.remove();
     return null;
   }
   try {
     const result = await apiRequest('/me');
     return result.data;
   } catch (error) {
-    if (!await AsyncStorage.getItem(key)) return null;
+    if (!await credentialStorage.get()) return null;
     throw error;
   }
 }
 
-export async function loginForTesting(): Promise<User> {
+export async function loginInstitutional(): Promise<User> {
+  const local = useLocalLogin();
   const existing = await restoreApiSession();
   if (existing) return existing;
-  const result = await apiRequest('/auth/test-login', { method: 'POST' });
-  await AsyncStorage.setItem(key, JSON.stringify(result.data));
-  return result.data.user;
+  const session: Session = await (local ? localLogin(apiRequest) : institutionalLogin(apiRequest));
+  await credentialStorage.set(JSON.stringify(session));
+  return session.user;
+}
+
+export async function sessionInstallation(userId: string): Promise<string | null> {
+  const raw = await credentialStorage.get();
+  const session: Session | null = raw ? JSON.parse(raw) : null;
+  return session?.user.id === userId ? session.installation_id : null;
 }
 
 export async function clearApiSession() {
-  await AsyncStorage.removeItem(key);
+  await credentialStorage.remove();
 }

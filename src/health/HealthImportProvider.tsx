@@ -3,14 +3,21 @@ import { AppState } from 'react-native';
 import { apiEnabled,apiRequest } from '@/api/session';
 import { hasAccess,useMock } from '@/mocks/MockProvider';
 import { useHealth } from './HealthProvider';
-import { HealthImportQueue } from './importQueue';
+import { preferenceKey,type WorkoutPreference, HealthImportQueue } from './importQueue';
 import type { HealthWorkout } from './model';
 
-type ContextValue={statuses:ReturnType<HealthImportQueue['getSnapshot']>;submit:(workout:HealthWorkout,code:string,dimension?:'physical'|'intellectual')=>Promise<void>};
+type ContextValue={statuses:ReturnType<HealthImportQueue['getSnapshot']>;submit:(workout:HealthWorkout,code:string,dimension?:'physical'|'intellectual',remember?:boolean)=>Promise<void>;preferences:Record<string,WorkoutPreference>};
 const Context=createContext<ContextValue|null>(null);
 export function HealthImportProvider({children}:PropsWithChildren) {
   const {state,api,ready:identityReady}=useMock();
   const {state:health,session,ready,preferenceError}=useHealth();
+  const [preferences,setPreferences]=useState<Record<string,WorkoutPreference>>({});
+  const [preferencesReady,setPreferencesReady]=useState(false);
+  useEffect(()=>{
+    let disposed=false;setPreferences({});setPreferencesReady(false);
+    if(apiEnabled && state.userId) void apiRequest('/me/health-workout-preferences',{},state.userId).then(response=>{if(!disposed){setPreferences(response.data);setPreferencesReady(true);}}).catch(()=>{if(!disposed)setPreferencesReady(true);});
+    return ()=>{disposed=true;};
+  },[state.userId]);
   const active=useRef(AppState.currentState==='active');
   const mounted=useRef(true);
   const context=useRef({state,api,ready,identityReady,preferenceError});context.current={state,api,ready,identityReady,preferenceError};
@@ -38,16 +45,24 @@ export function HealthImportProvider({children}:PropsWithChildren) {
     return ()=>{mounted.current=false;queue.stop();listener.remove();};
   },[queue]);
   useEffect(()=>{
-    if(!health.snapshot || !automaticAllowed())return;
-    void queue.automatic(health.snapshot.workouts,api.data.catalog,health.snapshot.syncedAt,automaticAllowed).then(imported=>{
+    if(!preferencesReady || !health.snapshot || !automaticAllowed())return;
+    void queue.automatic(health.snapshot.workouts,api.data.catalog,health.snapshot.syncedAt,automaticAllowed,preferences).then(imported=>{
       if(imported && allowed())void context.current.api.refresh().catch(()=>{});
     });
-  },[queue,health.snapshot,health.automaticImport,health.automatic,health.connected,ready,identityReady,preferenceError,api.data.catalog,api.data.consent?.status,state.offline,state.userId,state.membershipId]);
-  const submit=async(workout:HealthWorkout,code:string,dimension?:'physical'|'intellectual')=>{
+  },[preferencesReady,preferences,queue,health.snapshot,health.automaticImport,health.automatic,health.connected,ready,identityReady,preferenceError,api.data.catalog,api.data.consent?.status,state.offline,state.userId,state.membershipId]);
+  const submit=async(workout:HealthWorkout,code:string,dimension?:'physical'|'intellectual',remember=false)=>{
     if(!allowed())throw new Error('Conecte o aparelho e confira os termos de registro antes de enviar.');
     await queue.submit(workout,code,dimension,'manual',allowed);
-    if(queue.getSnapshot()[workout.id]?.status==='imported' && allowed())await context.current.api.refresh().catch(()=>{});
+    if(queue.getSnapshot()[workout.id]?.status==='imported' && allowed()) {
+      await context.current.api.refresh().catch(()=>{});
+      if(remember && workout.nativeType) {
+        try {
+          await apiRequest('/me/health-workout-preferences',{method:'PUT',body:JSON.stringify({source:workout.source,native_type:workout.nativeType,activity_type:code,energy_dimension:dimension})},owner.current.userId);
+          if(allowed())setPreferences(previous=>({...previous,[preferenceKey(workout)]:{activity_type:code,energy_dimension:dimension}}));
+        } catch { throw new Error('Treino registrado, mas não foi possível salvar a preferência no perfil.'); }
+      }
+    }
   };
-  return <Context.Provider value={{statuses,submit}}>{children}</Context.Provider>;
+  return <Context.Provider value={{statuses,submit,preferences}}>{children}</Context.Provider>;
 }
 export function useHealthImports(){const value=useContext(Context);if(!value)throw new Error('HealthImportProvider is required');return value;}

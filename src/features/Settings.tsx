@@ -1,6 +1,5 @@
+import { SegmentedTabs } from '@/ui/SegmentedTabs';
 import { OrganizationStatus } from './InstitutionalAccess';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from '@/design/tokens';
 import {useNotifications} from '@/notifications/NotificationProvider';
 import { apiEnabled } from "@/api/session";
 import { useState } from "react";
@@ -15,7 +14,7 @@ export default function Settings() {
   const [section, setSection] = useState<'account' | 'app' | 'help'>('account');
   return (
     <Flow title="Configurações">
-      <View style={s.tabs}>{([{ id: 'account', label: 'Conta' }, { id: 'app', label: 'Aplicativo' }, { id: 'help', label: 'Ajuda' }] as const).map(item => <Pressable key={item.id} accessibilityRole="tab" accessibilityState={{ selected: section === item.id }} onPress={() => setSection(item.id)} style={s.tab}><Text style={[s.tabText, section === item.id && s.tabSelected]}>{item.label}</Text></Pressable>)}</View>
+      <SegmentedTabs label="Seções de configurações" options={[{ id: 'account', label: 'Conta' }, { id: 'app', label: 'Aplicativo' }, { id: 'help', label: 'Ajuda' }]} value={section} onChange={setSection}/>
       {section === 'account' && <>
 
       {apiEnabled && <>
@@ -23,11 +22,6 @@ export default function Settings() {
         <OrganizationStatus />
         <Button secondary title="Minha meta diária" onPress={() => router.push('/goal')} />
       </>}
-      <Button
-        secondary
-        title="Editar perfil"
-        onPress={() => router.push("/edit-profile")}
-      />
       </>}
       {section === 'app' && <>
       <Button secondary title="Permissões do aparelho" onPress={() => router.push('/permissions')} />
@@ -67,10 +61,3 @@ export default function Settings() {
     </Flow>
   );
 }
-
-const s = StyleSheet.create({
-  tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 24, paddingHorizontal: 18 },
-  tab: { minHeight: 44, justifyContent: 'center' },
-  tabText: { color: colors.muted, fontFamily: 'Montserrat_500Medium', fontSize: 14 },
-  tabSelected: { color: colors.primary, fontFamily: 'Montserrat_700Bold' },
-});

@@ -20,11 +20,11 @@ test('Archive accepts an external HTTPS API and rejects missing, local or invali
     const script=path.resolve(__dirname,'../scripts/xcode-api-env.sh');
     fs.mkdirSync(path.join(dir,'scripts'));fs.copyFileSync(path.resolve(__dirname,'../scripts/testflight-env.cjs'),path.join(dir,'scripts/testflight-env.cjs'));
     // Resolve dotenv through the project dependencies while using an isolated env file.
-    const env={...process.env,CONFIGURATION:'Release',NODE_BINARY:process.execPath,PROJECT_ROOT:dir,NODE_PATH:path.resolve(__dirname,'../node_modules'),EXPO_PUBLIC_API_URL:'http://localhost:8000/api/v1'};
-    const release=spawnSync('/bin/bash',['-c','source "$1"; printf "%s" "$EXPO_PUBLIC_API_URL"','test',script],{env,encoding:'utf8'});
-    assert.equal(release.status,0,release.stderr);assert.ok(release.stdout.endsWith('https://api.example.com/api/v1'));
-    const debug=spawnSync('/bin/bash',['-c','source "$1"; printf "%s" "$EXPO_PUBLIC_API_URL"','test',script],{env:{...env,CONFIGURATION:'Debug'},encoding:'utf8'});
-    assert.equal(debug.stdout,'http://localhost:8000/api/v1');
+    const env={...process.env,CONFIGURATION:'Release',NODE_BINARY:process.execPath,PROJECT_ROOT:dir,NODE_PATH:path.resolve(__dirname,'../node_modules'),EXPO_PUBLIC_LOCAL_LOGIN_ENABLED:'true',EXPO_PUBLIC_API_URL:'http://localhost:8000/api/v1'};
+    const release=spawnSync('/bin/bash',['-c','source "$1"; printf "%s:%s" "$EXPO_PUBLIC_LOCAL_LOGIN_ENABLED" "$EXPO_PUBLIC_API_URL"','test',script],{env,encoding:'utf8'});
+    assert.equal(release.status,0,release.stderr);assert.ok(release.stdout.endsWith('false:https://api.example.com/api/v1'));
+    const debug=spawnSync('/bin/bash',['-c','source "$1"; printf "%s:%s" "$EXPO_PUBLIC_LOCAL_LOGIN_ENABLED" "$EXPO_PUBLIC_API_URL"','test',script],{env:{...env,CONFIGURATION:'Debug'},encoding:'utf8'});
+    assert.equal(debug.stdout,'true:http://localhost:8000/api/v1');
   } finally {fs.rmSync(dir,{recursive:true,force:true});}
 });
 
@@ -33,7 +33,7 @@ test('Android Release overrides both API variables and rejects invalid configura
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bora-android-env-'));
   const file = path.join(dir, '.env.testflight');
   try {
-    const env = {EXPO_PUBLIC_API_URL: 'http://localhost:8000/api/v1', EXPO_PUBLIC_ANDROID_API_URL: 'http://10.0.2.2:8000/api/v1', __EXPO_ENV_LOADED: '1'};
+    const env = {EXPO_PUBLIC_API_URL: 'http://localhost:8000/api/v1', EXPO_PUBLIC_ANDROID_API_URL: 'http://10.0.2.2:8000/api/v1', EXPO_PUBLIC_LOCAL_LOGIN_ENABLED: 'true', __EXPO_ENV_LOADED: '1'};
     const debug = {...env};
     configureReleaseEnv(['export:embed', '--dev', 'true'], debug, dir);
     assert.deepEqual(debug, env);
@@ -42,6 +42,7 @@ test('Android Release overrides both API variables and rejects invalid configura
     configureReleaseEnv(['export:embed', '--dev', 'false'], env, dir);
     assert.equal(env.EXPO_PUBLIC_API_URL, 'https://api.example.com/api/v1');
     assert.equal(env.EXPO_PUBLIC_ANDROID_API_URL, env.EXPO_PUBLIC_API_URL);
+    assert.equal(env.EXPO_PUBLIC_LOCAL_LOGIN_ENABLED, 'false');
     assert.equal(env.EXPO_NO_DOTENV, '1');
     assert.equal(env.__EXPO_ENV_LOADED, undefined);
     fs.writeFileSync(file, 'EXPO_PUBLIC_API_URL=http://localhost/api/v1\n');

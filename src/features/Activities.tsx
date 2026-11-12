@@ -1,9 +1,10 @@
+import type { NativeStackNavigationProp } from 'expo-router';
 import { ActivityCelebration } from "./activity/ActivityCelebration";
 import { ActivityStepScreen } from "./activity/ActivityStepScreen";
 import { apiEnabled } from "@/api/session";
 import { validateApiDraft } from "@/api/activityMapping";
 import { useRef, useState } from "react";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import {
   Button,
   Card,
@@ -146,6 +147,14 @@ export function ActivityResult() {
   const { id, celebrate, dimension } = useLocalSearchParams<{ id: string; celebrate?: string; dimension?: string }>();
   const { state, send, api } = useMock();
   const router = useRouter();
+  const navigation = useNavigation<NativeStackNavigationProp<{ '(tabs)': undefined }>>();
+  function finishRegistration() {
+    // Finish the entire registration stack, including entry and review screens.
+    navigation.reset({
+      index: 0,
+      routes: [{ name: '(tabs)', state: { index: 0, routes: [{ name: 'home' }] } }],
+    });
+  }
   const a = state.activities.find((a) => a.id === id);
   if (!a)
     return (
@@ -156,7 +165,7 @@ export function ActivityResult() {
         />
       </Flow>
     );
-  if (celebrate === '1' && a.status !== 'failed') return <ActivityCelebration activity={a} dimension={dimension === 'intellectual' ? 'intellectual' : 'physical'} onClose={() => router.replace('/home')}/>;
+  if (celebrate === '1' && a.status !== 'failed') return <ActivityCelebration activity={a} dimension={dimension === 'intellectual' ? 'intellectual' : 'physical'} onClose={finishRegistration}/>;
   const descriptions = {
     pending:
       "Salvo no aparelho, aguardando processamento.",

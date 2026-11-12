@@ -10,6 +10,7 @@ export type HealthWorkout = {
   externalId: string;
   source: HealthSource;
   origin: string;
+  nativeType?: string;
   kind: string;
   start: string;
   end: string;
@@ -56,7 +57,8 @@ export function normalizeWorkout(
   record: {
     id: string;
     origin: string;
-    kind: string;
+    nativeType?: string;
+  kind: string;
     start: string;
     end: string;
     durationMinutes?: number;
@@ -79,6 +81,7 @@ export function normalizeWorkout(
     externalId: record.id,
     source,
     origin: record.origin,
+    nativeType: record.nativeType,
     kind: record.kind,
     start: record.start,
     end: record.end,

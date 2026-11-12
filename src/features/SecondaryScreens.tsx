@@ -164,7 +164,7 @@ export function EditProfile() {
     if (router.canGoBack()) router.back(); else router.replace('/profile');
   }
   return (
-    <Sheet visible title="Editar perfil" avoidKeyboard onClose={close}>
+    <Sheet visible title="Editar" avoidKeyboard onClose={close}>
       <Field
         label="Nome de exibição"
         value={name}
@@ -174,7 +174,7 @@ export function EditProfile() {
       {!!error && <Notice>{error}</Notice>}
       <Button
         busy={busy}
-        title="Salvar perfil"
+        title="Salvar"
         disabled={!name.trim()}
         onPress={async () => {
           setBusy(true); setError('');

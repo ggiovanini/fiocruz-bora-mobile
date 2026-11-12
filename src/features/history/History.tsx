@@ -1,3 +1,4 @@
+import { SegmentedTabs } from '@/ui/SegmentedTabs';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -73,9 +74,7 @@ export default function History() {
         <Action icon="clock" label={updating ? 'Atualizando…' : 'Atualizar'} disabled={updating} onPress={()=>{void refresh();}}/>
       </View>
     </View>
-    <View style={s.tabs}>
-      {([{id:'all',label:'Todas'},{id:'device',label:'Dispositivo'},{id:'manual',label:'Manualmente'}] as const).map(tab=><Pressable key={tab.id} accessibilityRole="tab" accessibilityState={{selected:filter===tab.id}} onPress={()=>{setFilter(tab.id);setSelected(null);}} style={s.tab}><Text style={[s.tabText,filter===tab.id&&s.tabSelected]}>{tab.label}</Text></Pressable>)}
-    </View>
+    <SegmentedTabs label="Origem das atividades" options={[{ id: 'all', label: 'Todas' }, { id: 'device', label: 'Dispositivo' }, { id: 'manual', label: 'Manual' }]} value={filter} onChange={value => { setFilter(value); setSelected(null); }}/>
     {!!refreshError && <Notice>{refreshError}</Notice>}
     {filter!=='device' && state.draft && <Pressable accessibilityRole="button" accessibilityLabel={`Continuar rascunho: ${activityTitle(state.draft)}`} onPress={()=>router.push('/activity')} style={s.draft}><Icon name="edit" size={18}/><Text style={s.draftText}>Rascunho · {activityTitle(state.draft)}</Text><Icon name="arrow" size={17}/></Pressable>}
     {!!query && !!found.error && <><Notice>{found.error}</Notice><Button secondary title="Tentar pesquisa novamente" disabled={found.busy} onPress={found.refresh}/></>}
@@ -88,4 +87,4 @@ export default function History() {
     <HistoryDetail activity={detail} live={apiEnabled} offline={state.offline} busy={retrying} error={retryError} canRetry={!apiEnabled || (!!detail?.apiPayload && detail.membershipId===state.membershipId && state.accepted)} onClose={()=>setSelected(null)} onRetry={()=>{void retry();}}/>
   </ListScreen>;
 }
-const s=StyleSheet.create({tools:{flexDirection:'row',alignItems:'center',gap:12},tabs:{flexDirection:'row',gap:24},tab:{minHeight:44,justifyContent:'center'},tabText:{color:colors.muted,fontFamily:'Montserrat_500Medium',fontSize:14},tabSelected:{color:colors.primary,fontFamily:'Montserrat_700Bold'},toolbar:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8},action:{minHeight:44,flexDirection:'row',alignItems:'center',gap:6,paddingHorizontal:3},actionText:{color:colors.text,fontFamily:'Montserrat_500Medium',fontSize:11},draft:{flexDirection:'row',alignItems:'center',gap:10,padding:12,borderRadius:14,backgroundColor:colors.surface},draftText:{flex:1,color:colors.muted,fontFamily:'Montserrat_500Medium',fontSize:12,lineHeight:18}});
+const s=StyleSheet.create({tools:{flexDirection:'row',alignItems:'center',gap:12},toolbar:{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8},action:{minHeight:44,flexDirection:'row',alignItems:'center',gap:6,paddingHorizontal:3},actionText:{color:colors.text,fontFamily:'Montserrat_500Medium',fontSize:11},draft:{flexDirection:'row',alignItems:'center',gap:10,padding:12,borderRadius:14,backgroundColor:colors.surface},draftText:{flex:1,color:colors.muted,fontFamily:'Montserrat_500Medium',fontSize:12,lineHeight:18}});

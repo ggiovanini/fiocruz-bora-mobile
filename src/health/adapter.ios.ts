@@ -54,7 +54,8 @@ const adapter: HealthAdapter = {
       const normalized = normalizeWorkout("healthkit", {
         id: record.uuid,
         origin: record.sourceRevision.source.name,
-        kind: names[record.workoutActivityType] || "Outro treino",
+        nativeType: String(record.workoutActivityType),
+            kind: names[record.workoutActivityType] || "Outro treino",
         start: record.startDate.toISOString(),
         end: record.endDate.toISOString(),
         durationMinutes,

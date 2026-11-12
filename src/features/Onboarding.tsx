@@ -30,6 +30,9 @@ export default function Onboarding() {
   const { state, dispatch, api } = useMock();
   const router = useRouter();
   const pendingRegistration = api.data.registrations.find(item => item.status === 'pending');
+  const registrationOrganization = api.data.profile?.registration_organization;
+  const assignedOrganization = registrationOrganization && api.data.memberships.some(member => member.organization_id === registrationOrganization.id)
+    ? registrationOrganization : null;
   const [waitingAcknowledged, setWaitingAcknowledged] = useState(false);
   const needsOrganization = apiEnabled && !api.data.profile?.organization_selection_completed_at && api.data.memberships.length === 0;
   const firstStep: Step =
@@ -122,6 +125,7 @@ export default function Onboarding() {
       </>}
       {step === "consent" && (
         <>
+          {assignedOrganization && <Card title="Sua organização"><Copy>Seu cadastro no Bóra já está vinculado a {assignedOrganization.name}. Bóra começar sua jornada!</Copy></Card>}
           <Card title="Participação voluntária">
             <Copy>
               Você escolhe o ritmo da sua jornada. Conheça os termos e saiba

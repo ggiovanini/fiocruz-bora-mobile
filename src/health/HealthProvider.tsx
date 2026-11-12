@@ -67,6 +67,7 @@ export function HealthProvider({
           });
       });
       setReady(true);
+      if (session.getSnapshot().connected) void session.sync();
     })();
     return () => {
       disposed = true;
