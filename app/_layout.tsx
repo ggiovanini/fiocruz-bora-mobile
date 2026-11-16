@@ -74,6 +74,7 @@ function Navigation() {
       }}
     >
       <Stack.Screen name="index" />
+      <Stack.Screen name="auth/fiocruz" options={{ animation: 'none' }} />
       <Stack.Screen name="presentation" />
       <Stack.Screen name="legal" />
       <Stack.Screen name="about" />

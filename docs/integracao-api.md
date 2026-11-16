@@ -22,7 +22,7 @@ Para homologação/distribuição, use endereços HTTPS acessíveis pelo aparelh
 - Perfil: consulta do nome e contatos; edição do nome via `PATCH /me`.
 - Vínculos: consulta das organizações próprias e seleção quando houver mais de uma. A seleção fica salva por usuário; o servidor continua autorizando cada solicitação pelo vínculo.
 - Participação: consulta e registro/revogação do consentimento de atividades, associado à versão exata dos termos publicados. A leitura dos termos usa essa publicação específica. Nova publicação exige novo aceite; o checkbox nunca é marcado automaticamente.
-- Catálogo: tipos ativos, nomes, grupos e classificação física/mental/escolha vêm de `/activity-types`. O formulário exige dimensão para tipos com escolha e nome personalizado quando solicitado.
+- Catálogo: tipos ativos, nomes, grupos e classificação física/mental vêm de `/activity-types`. A dimensão é definida pelo catálogo; o formulário exige nome personalizado quando solicitado.
 - Registro manual: usa o fuso, a janela de sete dias e as regras de pontuação da API. Não há estimativa local de EV oficial.
 - Histórico: consulta por vínculo, conciliação por `client_activity_id`, carregamento de páginas por cursor e exibição do estado de validação e EV efetivamente concedido.
 - Jornada: home, avatar, perfil e constância usam energia, metas históricas, sequência, EV acumulados e PV oficiais. A tela de nível apresenta a faixa e o próximo nível retornados pelo servidor, sem aplicar a fórmula ilustrativa antiga.

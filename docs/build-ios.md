@@ -87,3 +87,20 @@ Após instalar os Pods, abrir `ios/Bra.xcworkspace` e gerar um novo Archive Rele
 Build iOS incrementado para 156 em app.json, Info.plist e configurações Debug/Release do projeto Xcode. A versão do projeto foi alinhada a 1.0.2, já usada no aplicativo. Prebuild iOS concluído com `npx expo prebuild --platform ios --no-clean --no-install`, preservando os arquivos nativos existentes. Android permanece no versionCode 155.
 
 Abrir `ios/Bra.xcworkspace` para gerar o Archive e enviar pelo Xcode. Esta preparação não gera Archive nem envia o aplicativo à Apple. Inclui a formatação das durações de treino com no máximo uma casa decimal e vírgula em português, sem alterar os valores de origem ou o cálculo de EV.
+
+
+## Versão 1.0.2 · build 159 · 13/11/2026
+
+Número de build incrementado para 159 em iOS e Android. Prebuild das duas plataformas executado com `--no-clean --no-install`, preservando os ajustes nativos existentes. No Expo atual, use `--no-clean` explicitamente para atualizar os projetos sem recriar as pastas. Esta etapa prepara os projetos; não gera Archive, APK ou AAB.
+
+As 118 dependências nativas do iOS foram reinstaladas com `pod install --deployment`, preservando o lockfile.
+
+## Versão 1.0.2 · build 160 · 16/11/2026
+
+Build incrementado de 159 para 160 em `app.json`, `Info.plist` e `CURRENT_PROJECT_VERSION` de Debug/Release. Prebuild das duas plataformas concluído sem limpeza nem reinstalação de pacotes JavaScript. Pods preparados com `pod install --deployment`: 118 dependências, sem alterações no lockfile.
+
+O workspace `ios/Bra.xcworkspace`, scheme Bra, Release para dispositivo genérico iOS foi validado com `xcodebuild -showBuildSettings`: versão 1.0.2, build 160, identificador `br.fiocruz.mobile.bora` e equipe existente. O bundle iOS de produção também foi exportado com sucesso usando a API de `.env.testflight` e login local desabilitado. Os 145 testes do app passaram após o prebuild.
+
+Abrir `ios/Bra.xcworkspace`, escolher um destino de dispositivo iOS e usar Product → Archive; depois Validate App / Distribute App para TestFlight. O Archive e o envio à Apple ficam para o Xcode; não foram executados nesta preparação.
+
+Inclui ajustes no retorno de login, escolha da meta inicial e preservação/reutilização de nomes de treinos. A API atualizada e sua migration de meta inicial também precisam ser publicadas; a preparação do aplicativo não publica o backend.

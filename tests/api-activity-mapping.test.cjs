@@ -20,17 +20,17 @@ test('a queued manual activity freezes two distinct UUIDs and the exact server p
  assert.equal(persisted.apiPayload.ev,undefined);assert.equal(persisted.apiPayload.user_id,undefined);
 });
 test('API catalogue controls classification, custom names and the seven-day date window',()=>{
- const choice={...item,code:'other',name:'Uma atividade renomeada',energy_dimension:'choice',requires_custom_name:true};
+ const choice={...item,code:'other',name:'Uma atividade renomeada',energy_dimension:'intellectual',requires_custom_name:true};
  const custom={...draft,activityCode:'other',activityName:'Tocar violão',energyDimension:'intellectual'};
  assert.equal(validateApiDraft(custom,[choice],'2026-10-20'),null);
- assert.match(validateApiDraft({...custom,energyDimension:undefined},[choice],'2026-10-20'),/Escolha/);
+ assert.equal(validateApiDraft({...custom,energyDimension:undefined},[choice],'2026-10-20'),null);
  assert.match(validateApiDraft({...custom,activityName:'a'},[choice],'2026-10-20'),/nome/);
  assert.match(validateApiDraft({...draft,date:'2026-10-13'},[item],'2026-10-20'),/seis dias/);
  assert.equal(validateApiDraft({...draft,date:'2026-10-14'},[item],'2026-10-20'),null);
  assert.match(validateApiDraft({...draft,date:'2026-10-21'},[item],'2026-10-20'),/seis dias/);
  assert.match(validateApiDraft({...draft,date:'2026-02-30'},[item],'2026-10-20'),/seis dias/);
  assert.match(validateApiDraft({...draft,activityCode:undefined},[item],'2026-10-20'),/Selecione/);
- assert.deepEqual(prepareActivity(custom,[choice],'membership','2026-10-20').apiPayload.energy_dimension,'intellectual');
+ assert.deepEqual(prepareActivity(custom,[choice],'membership','2026-10-20').apiPayload.energy_dimension,undefined);
 });
 test('history reconciles a lost response by client identity without duplicating pending rows or inventing EV',()=>{
  const activity=prepareActivity(draft,[item],'member','2026-10-20');
@@ -42,4 +42,14 @@ test('history reconciles a lost response by client identity without duplicating 
  assert.equal(mergeActivities(merged,[row]).length,1);
  const pending=mergeActivities([], [{...row,validation_status:'pending',scoring:{awarded_ev:null,energy_dimension:null}}]);
  assert.equal(pending[0].awardedEv,null);assert.equal(pending[0].validationStatus,'pending');assert.equal(pending[0].energyDimension,undefined);
+});
+
+test('both custom activity options derive their energy from the catalog and do not send a participant choice',()=>{
+ for (const [code,dimension] of [['other','physical'],['other_mental','intellectual']]) {
+  const customItem={...item,code,requires_custom_name:true,energy_dimension:dimension};
+  const custom={...draft,activityCode:code,activityName:'Minha prática',energyDimension:dimension==='physical'?'intellectual':'physical'};
+  const prepared=prepareActivity(custom,[customItem],'membership','2026-10-20');
+  assert.equal(prepared.energyDimension,dimension);assert.equal(prepared.apiPayload.energy_dimension,undefined);
+  assert.match(validateApiDraft({...custom,activityName:undefined},[customItem],'2026-10-20'),/nome/);
+ }
 });

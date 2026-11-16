@@ -3,10 +3,10 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Icon } from '@/design/Icon';
 import { colors } from '@/design/tokens';
-export function ActivityStepScreen({ title, step, onBack, onClose, footer, children }: PropsWithChildren<{ title: string; step: number; onBack: () => void; onClose: () => void; footer?: ReactNode }>) {
+export function ActivityStepScreen({ title, step, total = 5, onBack, onClose, footer, children }: PropsWithChildren<{ title: string; step: number; total?: number; onBack: () => void; onClose: () => void; footer?: ReactNode }>) {
   return <SafeAreaView style={s.safe}>
-    <View style={s.header}><Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={onBack} style={s.hit}><Icon name="back"/></Pressable><Text style={s.count}>ADICIONAR ATIVIDADE · {step}/5</Text><Pressable accessibilityRole="button" accessibilityLabel="Fechar registro" onPress={onClose} style={[s.hit,{transform:[{rotate:'45deg'}]}]}><Icon name="plus"/></Pressable></View>
-    <View style={s.track} accessibilityLabel={`Etapa ${step} de 5`}>{[1,2,3,4,5].map(n=><View key={n} style={[s.segment,n<=step&&{backgroundColor:colors.primary}]}/>)}</View>
+    <View style={s.header}><Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={onBack} style={s.hit}><Icon name="back"/></Pressable><Text style={s.count}>ADICIONAR ATIVIDADE · {step}/{total}</Text><Pressable accessibilityRole="button" accessibilityLabel="Fechar registro" onPress={onClose} style={[s.hit,{transform:[{rotate:'45deg'}]}]}><Icon name="plus"/></Pressable></View>
+    <View style={s.track} accessibilityLabel={`Etapa ${step} de ${total}`}>{Array.from({length:total}, (_,i)=>i+1).map(n=><View key={n} style={[s.segment,n<=step&&{backgroundColor:colors.primary}]}/>)}</View>
     <ScrollView keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets contentContainerStyle={s.body}><Text accessibilityRole="header" style={s.title}>{title}</Text>{children}</ScrollView>
     {footer && <View style={s.footer}>{footer}</View>}
   </SafeAreaView>;

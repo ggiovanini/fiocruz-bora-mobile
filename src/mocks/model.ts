@@ -8,6 +8,7 @@ export type Draft = {
   date: string;
   missionId?: string;
   activityName?: string;
+  usesSavedNames?: boolean;
   activityCode?: string;
   energyDimension?: 'physical' | 'intellectual';
 };
@@ -22,6 +23,8 @@ export type MockState = {
   session: "signedOut" | "active" | "expired";
   accepted: boolean;
   profileComplete: boolean;
+  initialGoalSelected?: boolean;
+  dailyGoal?: number;
   telemetry: boolean;
   name: string;
   organization: string;
@@ -56,6 +59,8 @@ export type Action =
           | "session"
           | "accepted"
           | "profileComplete"
+          | "initialGoalSelected"
+          | "dailyGoal"
           | "telemetry"
           | "name"
           | "organization"
@@ -116,15 +121,16 @@ export const activityOptions = [
   { type: "Meditação", group: "wellbeing", icon: "leaf" },
   { type: "Yoga", group: "wellbeing", icon: "leaf" },
   { type: "Pausa de bem-estar", group: "wellbeing", icon: "leaf" },
-  { type: "Outra atividade", group: "other", icon: "plus" },
+  { type: "Outras atividades físicas", group: "other", icon: "plus" },
+  { type: "Outras atividades mentais", group: "other", icon: "plus" },
 ] as const;
 export function activityTitle(draft: Draft) {
-  return (draft.type === "Outra atividade" || draft.activityCode === "other") ? draft.activityName?.trim() || draft.type : draft.type;
+  return draft.activityName?.trim() || draft.type;
 }
 export function validateDraft(draft: Draft): string | null {
   if (!activityOptions.some(option => option.type === draft.type))
     return "Selecione uma atividade da lista.";
-  if (draft.type === "Outra atividade" && (typeof draft.activityName !== "string" || draft.activityName.trim().length < 2 || draft.activityName.trim().length > 80))
+  if (draft.type.startsWith("Outras atividades") && (typeof draft.activityName !== "string" || draft.activityName.trim().length < 2 || draft.activityName.trim().length > 80))
     return "Dê um nome à atividade, entre 2 e 80 caracteres.";
   if (
     !/^\d+$/.test(draft.minutes) ||

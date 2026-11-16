@@ -41,6 +41,9 @@ const adapter: HealthAdapter = {
       [hk.WorkoutActivityType.cycling]: "Ciclismo",
       [hk.WorkoutActivityType.swimming]: "Natação",
       [hk.WorkoutActivityType.yoga]: "Yoga",
+      [hk.WorkoutActivityType.traditionalStrengthTraining]: "Musculação",
+      [hk.WorkoutActivityType.functionalStrengthTraining]: "Treino funcional",
+      [hk.WorkoutActivityType.highIntensityIntervalTraining]: "Treino intervalado",
     };
     const workouts: HealthWorkout[] = [];
     for (const record of records) {
@@ -55,7 +58,8 @@ const adapter: HealthAdapter = {
         id: record.uuid,
         origin: record.sourceRevision.source.name,
         nativeType: String(record.workoutActivityType),
-            kind: names[record.workoutActivityType] || "Outro treino",
+        kind: names[record.workoutActivityType] || "Outro treino",
+        name: typeof record.metadata?.HKWorkoutBrandName === 'string' ? record.metadata.HKWorkoutBrandName : undefined,
         start: record.startDate.toISOString(),
         end: record.endDate.toISOString(),
         durationMinutes,

@@ -1,9 +1,9 @@
 export type Membership = { id: string; organization_id: string; organization_name: string; role: string };
 export type OrganizationRequest = { id: string; organization_id: string; organization_name: string; status: 'pending' | 'confirmed' | 'rejected' | 'cancelled'; created_at: string; reviewed_at: string | null };
-export type Profile = { id: string; display_name: string; email?: string | null; phone?: string | null; organization_selection_completed_at?: string | null; registration_organization?: { id: string; name: string } | null };
+export type Profile = { id: string; display_name: string; initial_goal_selected?: boolean; email?: string | null; phone?: string | null; organization_selection_completed_at?: string | null; registration_organization?: { id: string; name: string } | null };
 export type CatalogItem = {
   code: string; name: string; discovery_group: string; requires_custom_name: boolean;
-  energy_dimension: 'physical' | 'intellectual' | 'choice' | null;
+  energy_dimension: 'physical' | 'intellectual' | null;
   ev_per_minute: string | null; scoring_status: string; timezone: string; recording_window_days: number;
 };
 export type Consent = {
@@ -32,7 +32,7 @@ export type EnergySummary = {
 };
 export type ManualPayload = {
   client_activity_id: string; activity_type: string; activity_date: string; timezone: string; duration_seconds: number;
-  custom_name?: string; energy_dimension?: 'physical' | 'intellectual';
+  custom_name?: string; workout_name?: string; energy_dimension?: 'physical' | 'intellectual';
 };
 export type ServerActivity = {
   id: string; client_activity_id: string; source?: string; membership_id: string | null; activity_type: string; activity_name: string;
@@ -40,6 +40,7 @@ export type ServerActivity = {
   scoring: { awarded_ev: number | null; energy_dimension: string | null };
 };
 export type JourneySnapshot = {
+  activityNames?: { name: string; activity_type: string }[];
   profile: Profile | null; memberships: Membership[]; registrations: OrganizationRequest[]; catalog: CatalogItem[]; energy: EnergySummary | null;
   consent: Consent | null; nextCursor: string | null;
 };

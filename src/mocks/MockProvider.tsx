@@ -162,5 +162,5 @@ export function useMock() {
   return context;
 }
 export function hasAccess(state: MockState) {
-  return state.session === "active" && state.accepted && state.profileComplete;
+  return state.session === "active" && state.accepted && state.profileComplete && state.initialGoalSelected !== false;
 }

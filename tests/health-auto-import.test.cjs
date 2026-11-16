@@ -11,24 +11,24 @@ function load(file,mocks={}) {
 }
 const {HealthImportQueue}=load('src/health/importQueue.ts');
 const workout=(id='one',kind='Caminhada')=>({id:`healthkit:${id}`,externalId:id,source:'healthkit',origin:'Private device',kind,start:'2026-11-09T10:00:00Z',end:'2026-11-09T10:30:00Z',durationMinutes:20,status:'local-only'});
-const catalog=[{code:'walking',scoring_status:'configured',energy_dimension:'physical',requires_custom_name:false},{code:'yoga',scoring_status:'configured',energy_dimension:'choice',requires_custom_name:false}];
+const catalog=[{code:'walking',scoring_status:'configured',energy_dimension:'physical',requires_custom_name:false},{code:'yoga',scoring_status:'configured',energy_dimension:'physical',requires_custom_name:false}];
 const ok=async()=>({scoring:{awarded_ev:20}});
 test('automatic uploads require authorization, skip ambiguous types and send only allowed fields',async()=>{
  const sent=[];const queue=new HealthImportQueue(async payload=>{sent.push(payload);return ok();});
  await queue.automatic([workout()],catalog,'one',()=>false);assert.equal(sent.length,0);
  await queue.automatic([workout(),workout('yoga','Yoga'),workout('other','Outro treino')],catalog,'one',()=>true);
- assert.equal(sent.length,1);assert.equal(sent[0].import_mode,'automatic');assert.equal(sent[0].confirmed,true);
+ assert.equal(sent.length,2);assert.equal(sent[0].import_mode,'automatic');assert.equal(sent[0].confirmed,true);
  assert.equal(sent[0].origin,undefined);assert.equal(sent[0].steps,undefined);assert.equal(sent[0].user_id,undefined);assert.equal(sent[0].ev,undefined);
  assert.equal(queue.getSnapshot()['healthkit:one'].status,'imported');
- assert.equal(queue.getSnapshot()['healthkit:yoga'].status,'review');assert.equal(queue.getSnapshot()['healthkit:other'].status,'review');
- await queue.submit(workout('yoga','Yoga'),'yoga','physical','manual',()=>true);
- assert.equal(sent[1].energy_dimension,'physical');assert.equal(sent[1].import_mode,'manual');
+ assert.equal(queue.getSnapshot()['healthkit:yoga'].status,'imported');assert.equal(queue.getSnapshot()['healthkit:other'].status,'review');
+ await queue.submit(workout('other','Outro treino'),'yoga','manual',()=>true);
+ assert.equal(sent[2].energy_dimension,undefined);assert.equal(sent[2].import_mode,'manual');
 });
 test('manual and automatic paths share a per-workout lock and do not repeat successful uploads',async()=>{
  let finish;const sent=[];const queue=new HealthImportQueue(payload=>{sent.push(payload);return new Promise(resolve=>finish=resolve);});
  const automatic=queue.automatic([workout(),workout()],catalog,'one',()=>true);
  await Promise.resolve();
- const manual=queue.submit(workout(),'walking',undefined,'manual',()=>true);
+ const manual=queue.submit(workout(),'walking','manual',()=>true);
  finish({scoring:{awarded_ev:null}});await Promise.all([automatic,manual]);
  assert.equal(sent.length,1);assert.equal(queue.getSnapshot()['healthkit:one'].awardedEv,null);
  await queue.automatic([workout()],catalog,'two',()=>true);assert.equal(sent.length,1);
@@ -44,7 +44,7 @@ test('validation and overlap conflicts stay for review instead of retrying autom
  let count=0;const queue=new HealthImportQueue(async()=>{count++;throw Object.assign(new Error('Já existe um registro'),{status:422});});
  await queue.automatic([workout()],catalog,'one',()=>true);await queue.automatic([workout()],catalog,'two',()=>true);
  assert.equal(count,1);assert.equal(queue.getSnapshot()['healthkit:one'].status,'review');
- await queue.submit(workout(),'walking',undefined,'manual',()=>true);assert.equal(count,2);
+ await queue.submit(workout(),'walking','manual',()=>true);assert.equal(count,2);
 });
 test('revoking authorization during a batch stops subsequent uploads; stopped sessions ignore late responses',async()=>{
  let allowed=true,finish;const sent=[];const queue=new HealthImportQueue(payload=>{sent.push(payload);return new Promise(resolve=>finish=resolve);});
@@ -88,10 +88,38 @@ test('a connectivity failure pauses the batch instead of flooding the service wi
  assert.deepEqual(sent,['one','one','two']);
 });
 
-test('profile preferences distinguish native modalities and retain the chosen dimension',async()=>{
+test('profile preferences distinguish native modalities and use only the activity mapping',async()=>{
  const sent=[];const queue=new HealthImportQueue(async payload=>{sent.push(payload);return ok();});
  const preferences={'healthkit:50':{activity_type:'yoga',energy_dimension:'physical'}};
  await queue.automatic([{...workout('strength','Outro treino'),nativeType:'50'},{...workout('cooldown','Outro treino'),nativeType:'80'}],catalog,'one',()=>true,preferences);
- assert.equal(sent.length,1);assert.equal(sent[0].external_id,'strength');assert.equal(sent[0].energy_dimension,'physical');
+ assert.equal(sent.length,1);assert.equal(sent[0].external_id,'strength');assert.equal(sent[0].energy_dimension,undefined);
  assert.equal(queue.getSnapshot()['healthkit:cooldown'].status,'review');
+});
+
+test('legacy preference dimensions cannot override the catalog or make an unconfigured activity importable',async()=>{
+ const sent=[];const queue=new HealthImportQueue(async payload=>{sent.push(payload);return ok();});
+ await queue.automatic([{...workout('legacy','Outro treino'),nativeType:'50'}],catalog,'one',()=>true,{'healthkit:50':{activity_type:'yoga',energy_dimension:'intellectual'}});
+ assert.equal(sent[0].activity_type,'yoga');assert.equal(sent[0].energy_dimension,undefined);
+ const invalid=new HealthImportQueue(async payload=>{sent.push(payload);return ok();});
+ await invalid.automatic([workout('bad','Yoga')],[{...catalog[1],energy_dimension:'choice'}],'one',()=>true);
+ assert.equal(sent.length,1);assert.equal(invalid.getSnapshot()['healthkit:bad'].status,'review');
+});
+
+test('unknown named workouts fall back to other physical activities and keep their own title',async()=>{
+ const sent=[];const queue=new HealthImportQueue(async payload=>{sent.push(payload);return ok();});
+ const fallback={code:'other',name:'Outras atividades físicas',scoring_status:'configured',energy_dimension:'physical',requires_custom_name:true};
+ await queue.automatic([{...workout('tennis','Outro treino'),name:'Tênis com amigos'}],[...catalog,fallback],'one',()=>true);
+ assert.equal(sent[0].activity_type,'other');assert.equal(sent[0].workout_name,'Tênis com amigos');
+ assert.equal(queue.getSnapshot()['healthkit:tennis'].status,'imported');
+});
+
+test('remembered mappings can distinguish named workouts sharing the same native modality',async()=>{
+ const {preferenceKey}=load('src/health/importQueue.ts');
+ const first={...workout('one','Outro treino'),nativeType:'50',name:'Minha Natação'};
+ const second={...workout('two','Outro treino'),nativeType:'50',name:'Minha caminhada'};
+ assert.equal(preferenceKey(first),'healthkit:50:minha natacao');
+ const sent=[];const queue=new HealthImportQueue(async payload=>{sent.push(payload);return ok();});
+ await queue.automatic([first,second],catalog,'one',()=>true,{[preferenceKey(first)]:{activity_type:'yoga'},[preferenceKey(second)]:{activity_type:'walking'}});
+ assert.deepEqual(sent.map(item=>item.activity_type),['yoga','walking']);
+ assert.deepEqual(sent.map(item=>item.workout_name),['Minha Natação','Minha caminhada']);
 });

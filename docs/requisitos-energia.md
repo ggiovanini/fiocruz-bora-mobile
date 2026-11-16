@@ -6,7 +6,7 @@ A API já concede EV por duração e oferece GET /api/v1/me/energy e PUT /api/v1
 - Meta inicial 100 EV; física + mental completam a mesma meta. Excesso continua acumulando, mas não passa para a meta de amanhã.
 - Alterações de meta e taxas valem amanhã; lançamentos retroativos usam a taxa da data original.
 - Lançamento manual: hoje e seis dias anteriores, fuso America/Sao_Paulo informado pela API, duração em segundos múltiplos de 60. Preservar UUID do registro e Idempotency-Key na fila offline.
-- O catálogo anuncia scoring_status configured, ev_per_minute, energy_dimension physical/intellectual/choice, rounding floor e recording_window_days 7. Para choice (Outra atividade e bem-estar), pedir dimensão ao usuário. Mesma taxa para ambas.
+- O catálogo anuncia scoring_status configured, ev_per_minute, energy_dimension physical/intellectual, rounding floor e recording_window_days 7. Cada atividade tem uma dimensão fixa. Outras atividades físicas (other) e Outras atividades mentais (other_mental) têm nome personalizado obrigatório.
 - Sucesso de transporte não é incremento local: usar awarded_ev e resumo oficial. Nunca somar novamente ao repetir uma operação. O registro é aprovado diretamente; não criar etapa de aprovação humana.
 - GET me/energy retorna today, days, lifetime_earned_ev, streak_days, inactivity, scheduled_goal e vitality ativa. Consulta pessoal agrega organizações; não duplicar pontos ao trocar vínculo. Datas futuras/intervalos maiores que 366 dias são rejeitados.
 - Constância conta metas cumpridas consecutivas. Hoje incompleto preserva a sequência de ontem; falhar não subtrai energia. Atividade abaixo da meta reinicia inatividade separadamente.

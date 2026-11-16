@@ -14,7 +14,8 @@ export function validateApiDraft(draft: Draft, catalog: CatalogItem[], today: st
   if (!item) return 'Selecione uma atividade disponível.';
   if (!/^\d+$/.test(draft.minutes) || Number(draft.minutes) < 1 || Number(draft.minutes) > 1440) return 'Informe uma duração entre 1 e 1440 minutos.';
   if (item.requires_custom_name && (!draft.activityName || draft.activityName.trim().length < 2 || draft.activityName.trim().length > 80)) return 'Informe um nome entre 2 e 80 caracteres.';
-  if (item.energy_dimension === 'choice' && !draft.energyDimension) return 'Escolha se a atividade foi física ou mental.';
+  if (draft.activityName !== undefined && (draft.activityName.trim().length < 2 || draft.activityName.trim().length > 80)) return 'Informe um nome entre 2 e 80 caracteres.';
+  if (item.energy_dimension !== 'physical' && item.energy_dimension !== 'intellectual') return 'Esta atividade ainda não tem uma dimensão configurada no catálogo.';
   const date = new Date(`${draft.date}T12:00:00Z`);
   const lower = new Date(`${today}T12:00:00Z`);
   lower.setUTCDate(lower.getUTCDate() - item.recording_window_days + 1);
@@ -29,9 +30,9 @@ export function prepareActivity(draft: Draft, catalog: CatalogItem[], membership
   const payload: ManualPayload = { client_activity_id: id, activity_type: item.code, activity_date: draft.date,
     timezone: item.timezone, duration_seconds: Number(draft.minutes) * 60,
     ...(item.requires_custom_name ? { custom_name: draft.activityName!.trim() } : {}),
-    ...(item.energy_dimension === 'choice' ? { energy_dimension: draft.energyDimension } : {}),
+    ...(!item.requires_custom_name && draft.activityName ? { workout_name: draft.activityName.trim() } : {}),
   };
-  return { ...draft, id, status: 'pending', createdAt: new Date().toISOString(),
+  return { ...draft, energyDimension: item.energy_dimension ?? undefined, id, status: 'pending', createdAt: new Date().toISOString(),
     operationKey: uuid(), membershipId: membership, apiPayload: payload };
 }
 export function fromServer(row: ServerActivity): Activity {

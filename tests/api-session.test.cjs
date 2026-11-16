@@ -68,3 +68,25 @@ test('institutional failures never fall back to demo login',async t=>{
  await assert.rejects(api.loginInstitutional(),/SSO unavailable/);
  assert.equal(api.storage.has(key),false);
 });
+
+test('a saved thirty-day session is reused without reopening SSO, including after a failed connection',async t=>{
+ const session={token:'institutional',user:{id:'person',display_name:'Pessoa'},expires_at:new Date(Date.now()+29*86400000).toISOString(),installation_id:'device'};
+ const api=setup(t,{institutionalLogin:async()=>assert.fail('A valid saved session must not reopen SSO')});
+ api.storage.set(key,JSON.stringify(session));
+ const network=t.mock.method(globalThis,'fetch',async()=>{throw new Error('offline');});
+ await assert.rejects(api.restoreApiSession(),error=>error.status===0);
+ assert.equal(JSON.parse(api.storage.get(key)).token,session.token);
+ network.mock.mockImplementation(async()=>({ok:true,status:200,json:async()=>({data:session.user})}));
+ assert.equal((await api.loginInstitutional()).id,'person');
+});
+
+test('an expired saved credential is removed before a new institutional login',async t=>{
+ let logins=0;
+ const fresh={token:'fresh',user:{id:'person'},expires_at:new Date(Date.now()+30*86400000).toISOString(),installation_id:'device'};
+ const api=setup(t,{institutionalLogin:async()=>{logins++;return fresh;}});
+ api.storage.set(key,JSON.stringify({...fresh,token:'expired',expires_at:new Date(Date.now()-1000).toISOString()}));
+ t.mock.method(globalThis,'fetch',async()=>assert.fail('Expired tokens must not be sent'));
+ assert.equal((await api.loginInstitutional()).id,'person');
+ assert.equal(logins,1);
+ assert.equal(JSON.parse(api.storage.get(key)).token,'fresh');
+});

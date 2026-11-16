@@ -9,9 +9,12 @@ const Context = createContext<{
 } | null>(null);
 /** Official API energy when connected; isolated fixtures only without an API configuration. */
 export function EnergyPreviewProvider({ children }: PropsWithChildren) {
-  const { api } = useMock();
+  const { api, state, dispatch } = useMock();
   const [energy, setEnergy] = useState({ green: 40, blue: 25 });
-  const [goal, setGoal] = useState(100);
+  const goal = state.dailyGoal ?? 100;
+  const setGoal: React.Dispatch<React.SetStateAction<number>> = value => {
+    dispatch({ type: 'patch', value: { dailyGoal: typeof value === 'function' ? value(goal) : value } });
+  };
   return <Context.Provider value={{ energy: apiEnabled ? { green: api.data.energy?.today.physical_ev ?? 0, blue: api.data.energy?.today.intellectual_ev ?? 0 } : energy, setEnergy: apiEnabled ? () => {} : setEnergy, goal: apiEnabled ? api.data.energy?.today.goal_ev ?? 100 : goal, setGoal: apiEnabled ? () => {} : setGoal }}>{children}</Context.Provider>;
 }
 export function useEnergyPreview() {

@@ -1,11 +1,12 @@
 import type { CatalogItem } from '../api/contracts';
 import type { HealthWorkout } from './model';
 import { importPayload } from './importPayload';
+import { nativeWorkoutActivityCode, normalizeActivityName, resolveWorkoutActivity } from './workoutMapping';
 
-const mapping:Record<string,string>={Caminhada:'walking',Corrida:'running','Corrida em esteira':'running',Ciclismo:'cycling','Natação':'swimming',Yoga:'yoga'};
-export const workoutActivityCode=(workout:HealthWorkout)=>mapping[workout.kind] ?? '';
-export type WorkoutPreference={activity_type:string;energy_dimension?:'physical'|'intellectual'};
-export const preferenceKey=(workout:HealthWorkout)=>workout.nativeType ? `${workout.source}:${workout.nativeType}` : '';
+export const workoutActivityCode=(workout:HealthWorkout,catalog?:CatalogItem[])=>catalog ? resolveWorkoutActivity(workout,catalog)?.code ?? '' : nativeWorkoutActivityCode(workout);
+export type WorkoutPreference={activity_type:string};
+export const preferenceKey=(workout:HealthWorkout)=>workout.nativeType ? `${workout.source}:${workout.nativeType}${normalizeActivityName(workout.name || '') ? `:${normalizeActivityName(workout.name || '')}` : ''}` : '';
+export const workoutPreference=(workout:HealthWorkout,preferences:Record<string,WorkoutPreference>)=>preferences[preferenceKey(workout)] ?? preferences[`${workout.source}:${workout.nativeType}`];
 export type ImportStatus={status:'sending'|'imported'|'review'|'failed';message?:string;awardedEv?:number|null;retryable?:boolean;blockBatch?:boolean;cycle?:string};
 export type WorkoutPayload=ReturnType<typeof importPayload> & {import_mode:'manual'|'automatic'};
 export class HealthImportQueue {
@@ -21,7 +22,7 @@ export class HealthImportQueue {
   start=()=>{this.stopped=false;};
   stop=()=>{this.stopped=true;};
   private update(id:string,value:ImportStatus){if(this.stopped)return;this.state={...this.state,[id]:value};this.listeners.forEach(fn=>fn());}
-  async submit(workout:HealthWorkout,code:string,dimension:'physical'|'intellectual'|undefined,mode:'manual'|'automatic',allowed:()=>boolean,cycle?:string):Promise<void> {
+  async submit(workout:HealthWorkout,code:string,mode:'manual'|'automatic',allowed:()=>boolean,cycle?:string):Promise<void> {
     if(this.stopped || !allowed() || this.state[workout.id]?.status==='imported')return;
     const existing=this.pending.get(workout.id);if(existing)return existing;
     // Defer execution until the per-record lock is installed.
@@ -29,7 +30,7 @@ export class HealthImportQueue {
       if(this.stopped || !allowed())return;
       this.update(workout.id,{status:'sending',cycle});
       try {
-        const payload={...importPayload(workout,code,dimension),import_mode:mode};
+        const payload={...importPayload(workout,code),import_mode:mode};
         if(this.stopped || !allowed())return;
         const response=await this.send(payload);
         this.update(workout.id,{status:'imported',awardedEv:response.scoring.awarded_ev,cycle});
@@ -53,12 +54,12 @@ export class HealthImportQueue {
         const prior=this.state[workout.id];
         if(prior?.status==='imported' || prior?.status==='sending' || prior?.cycle===cycle)continue;
         if(prior?.status==='review' && prior.retryable===false)continue;
-        const preference=preferences[preferenceKey(workout)];
-        const item=catalog.find(item=>item.code===(preference?.activity_type ?? workoutActivityCode(workout)) && !item.requires_custom_name);
-        if(!item || item.scoring_status!=='configured' || (item.energy_dimension!=='physical' && item.energy_dimension!=='intellectual' && !(item.energy_dimension==='choice' && preference?.energy_dimension))) {
-          this.update(workout.id,{status:'review',message:'Confira a atividade e a dimensão antes de enviar.',cycle});continue;
+        const preference=workoutPreference(workout,preferences);
+        const item=catalog.find(item=>item.code===(preference?.activity_type ?? workoutActivityCode(workout,catalog)));
+        if(!item || item.scoring_status!=='configured' || (item.energy_dimension!=='physical' && item.energy_dimension!=='intellectual')) {
+          this.update(workout.id,{status:'review',message:'Selecione uma atividade do catálogo para vincular este treino.',cycle});continue;
         }
-        await this.submit(workout,item.code,item.energy_dimension==='choice'?preference?.energy_dimension:undefined,'automatic',allowed,cycle);
+        await this.submit(workout,item.code,'automatic',allowed,cycle);
         if(this.state[workout.id]?.status==='imported')imported=true;
         if(this.state[workout.id]?.blockBatch){this.pausedCycle=cycle;break;}
       }

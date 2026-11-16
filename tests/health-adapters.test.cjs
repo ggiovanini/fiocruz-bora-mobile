@@ -35,6 +35,7 @@ const record = (id) => ({
   endTime: "2026-10-01T10:30:00Z",
   exerciseType: 1,
   notes: "Must not be retained",
+  title: "  Caminhada no parque  ",
 });
 test("Android requests only workouts and reads every workout page", async () => {
   let requested;
@@ -69,6 +70,8 @@ test("Android requests only workouts and reads every workout page", async () => 
   assert.equal(result.workouts.length, 2);
   assert.equal(result.steps.length, 0);
   assert.equal(result.workouts[0].durationMinutes, 30);
+  assert.equal(result.workouts[0].name, 'Caminhada no parque');
+  assert.equal(result.workouts[0].kind, 'Caminhada');
   assert.equal(result.workouts[0].notes, undefined);
 });
 test("Android does not read steps even when the system has an old steps permission", async () => {
@@ -139,7 +142,7 @@ test("iOS authorizes only workouts, never queries steps and normalizes active du
           startDate: new Date("2026-10-01T10:00:00Z"),
           endDate: new Date("2026-10-01T10:30:00Z"),
           duration: { quantity: 1200, unit: "s" },
-          metadata: { private: "discard" },
+          metadata: { private: "discard", HKWorkoutBrandName: 'Minha caminhada' },
         },
       ];
     },
@@ -163,4 +166,6 @@ test("iOS authorizes only workouts, never queries steps and normalizes active du
   assert.equal(options.limit, 0);
   assert.equal(result.workouts[0].durationMinutes, 20);
   assert.equal(result.workouts[0].metadata, undefined);
+  assert.equal(result.workouts[0].name, 'Minha caminhada');
+  assert.equal(result.workouts[0].kind, 'Caminhada');
 });

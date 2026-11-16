@@ -12,6 +12,7 @@ export type HealthWorkout = {
   origin: string;
   nativeType?: string;
   kind: string;
+  name?: string;
   start: string;
   end: string;
   durationMinutes: number;
@@ -58,7 +59,8 @@ export function normalizeWorkout(
     id: string;
     origin: string;
     nativeType?: string;
-  kind: string;
+    kind: string;
+    name?: string;
     start: string;
     end: string;
     durationMinutes?: number;
@@ -83,6 +85,7 @@ export function normalizeWorkout(
     origin: record.origin,
     nativeType: record.nativeType,
     kind: record.kind,
+    ...(typeof record.name === 'string' && record.name.trim() ? { name: Array.from(record.name.trim().replace(/\s+/g, ' ')).slice(0, 80).join('') } : {}),
     start: record.start,
     end: record.end,
     durationMinutes,

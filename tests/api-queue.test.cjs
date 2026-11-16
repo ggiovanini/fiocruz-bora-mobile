@@ -21,10 +21,15 @@ function harness(options={}){
    if(calls.filter(call=>call.init.method==='POST').length===1)await lock;
    return {data:serverRow(JSON.parse(init.body))};
   }
-  if(url==='/me')return {data:{id:'user',display_name:'Pessoa',organization_selection_completed_at:options.completed ?? null,registration_organization:options.registrationOrganization ?? null}};
+  if(url==='/me/energy/initial-goal'){
+   if(options.failInitialGoal)throw new Error('Sem conexão');
+   options.initialGoalSelected=true;options.goal=JSON.parse(init.body).goal_ev;
+   return {data:{goal_ev:options.goal,effective_from:'2026-10-20'}};
+  }
+  if(url==='/me')return {data:{id:'user',display_name:'Pessoa',initial_goal_selected:options.initialGoalSelected,organization_selection_completed_at:options.completed ?? null,registration_organization:options.registrationOrganization ?? null}};
   if(url==='/me/memberships')return {data:options.memberships ?? [{id:'member',organization_name:'Org'}]};
   if(url==='/me/organization-requests')return {data:options.registrations ?? []};
-  if(url==='/me/energy')return {data:{today:{date:'2026-10-20'},days:[]}};
+  if(url==='/me/energy')return {data:{today:{date:'2026-10-20',goal_ev:options.goal ?? 100},days:[]}};
   if(url==='/activity-types')return {data:[]};
   if(url.endsWith('/consents/activity-recording'))return {data:{configured:true,status:options.consentStatus ?? 'granted',policy_version:'v1'}};
   if(url.includes('/activities'))return {data:[],next_cursor:null};
@@ -110,4 +115,25 @@ test('preferred registration opens its confirmed organization while keeping cons
  assert.equal(probe.current.current.organization,'Organização preferencial');
  assert.equal(probe.current.current.profileComplete,true);
  assert.equal(probe.current.current.accepted,false);
+});
+
+test('a new participant keeps the initial goal step pending until the API confirms the choice',async()=>{
+ const options={initialGoalSelected:false};const h=harness(options);
+ await h.api.connect('user');
+ assert.equal(h.current.current.initialGoalSelected,false);
+ await h.api.selectInitialGoal(60);
+ assert.equal(h.current.current.initialGoalSelected,true);
+ assert.ok(h.calls.some(call=>call.url==='/me/energy/initial-goal'&&call.init.method==='PUT'&&JSON.parse(call.init.body).goal_ev===60));
+ assert.equal(options.goal,60);
+ assert.equal(h.calls.filter(call=>call.url==='/me/energy').length,2);
+});
+
+test('a failed initial goal request keeps onboarding pending and can be retried',async()=>{
+ const options={initialGoalSelected:false,failInitialGoal:true};const h=harness(options);
+ await h.api.connect('user');
+ await assert.rejects(h.api.selectInitialGoal(30),/Sem conexão/);
+ assert.equal(h.current.current.initialGoalSelected,false);
+ options.failInitialGoal=false;
+ await h.api.selectInitialGoal(30);
+ assert.equal(h.current.current.initialGoalSelected,true);
 });

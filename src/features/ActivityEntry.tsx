@@ -11,8 +11,9 @@ import { colors } from '@/design/tokens';
 import { BeanImage } from './avatar/BeanImage';
 import { ActivityStepScreen, activityStepStyles as s } from './activity/ActivityStepScreen';
 import { recentDates, supportsEnergy, type EnergyKind } from './activity/catalog';
+import { savedActivityNames } from './activity/savedNames';
 
-type Step = 'kind' | 'activity' | 'name' | 'duration' | 'when';
+type Step = 'kind' | 'activity' | 'saved-name' | 'name' | 'duration' | 'when';
 export default function ActivityEntry() {
   const { state, dispatch, api } = useMock();
   const router = useRouter();
@@ -26,8 +27,9 @@ export default function ActivityEntry() {
   const [error, setError] = useState('');
   const draft = state.draft;
   const today = api.data.energy?.today.date ?? localDate();
-  const options = apiEnabled ? api.data.catalog : activityOptions.map(item => ({ code: item.type, name: item.type, discovery_group: item.group, requires_custom_name: item.type === 'Outra atividade', energy_dimension: item.group === 'movement' ? 'physical' as const : item.group === 'mind' ? 'intellectual' as const : 'choice' as const, recording_window_days: 7 }));
+  const options = apiEnabled ? api.data.catalog : activityOptions.map(item => ({ code: item.type, name: item.type, discovery_group: item.group, requires_custom_name: item.type.startsWith('Outras atividades'), energy_dimension: item.group === 'mind' || ['Meditação', 'Pausa de bem-estar', 'Outras atividades mentais'].includes(item.type) ? 'intellectual' as const : 'physical' as const, recording_window_days: 7 }));
   const selected = options.find(item => apiEnabled ? item.code === draft?.activityCode : item.name === draft?.type);
+  const savedNames = selected ? savedActivityNames(selected, api.data.activityNames ?? [], state.activities) : [];
   const resumeKind = selected?.energy_dimension === 'physical' || selected?.energy_dimension === 'intellectual' ? selected.energy_dimension : draft?.energyDimension;
   const query = search.trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   const visible = options.filter(item => supportsEnergy(item, kind) && item.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(query));
@@ -37,13 +39,14 @@ export default function ActivityEntry() {
   const back = useCallback(() => {
     setError('');
     if (step === 'kind') { if (router.canGoBack()) router.back(); else router.replace('/home'); }
-    else setStep(step === 'activity' ? 'kind' : step === 'name' ? 'activity' : step === 'duration' ? selected?.requires_custom_name ? 'name' : 'activity' : 'duration');
-  }, [step, selected?.requires_custom_name, router]);
+    else setStep(step === 'activity' ? 'kind' : step === 'saved-name' ? 'activity' : step === 'name' ? savedNames.length ? 'saved-name' : 'activity' : step === 'duration' ? savedNames.length ? 'saved-name' : selected?.requires_custom_name ? 'name' : 'activity' : 'duration');
+  }, [step, selected?.requires_custom_name, savedNames.length, router]);
   useFocusEffect(useCallback(() => { const sub = BackHandler.addEventListener('hardwareBackPress', () => { back(); return true; }); return () => sub.remove(); }, [back]));
   function update(patch: Partial<Draft>) { if (draft) dispatch({ type: 'draft', value: { ...draft, ...patch } }); setError(''); }
   function choose(item: typeof options[number]) {
-    dispatch({ type: 'draft', value: { ...(draft ?? newDraft()), type: item.name, activityCode: apiEnabled ? item.code : undefined, activityName: undefined, energyDimension: kind, date: draft?.date ?? today } });
-    setCustomTime(false); setError(''); setStep(item.requires_custom_name ? 'name' : 'duration');
+    const names = savedActivityNames(item, api.data.activityNames ?? [], state.activities);
+    dispatch({ type: 'draft', value: { ...(draft ?? newDraft()), type: item.name, activityCode: apiEnabled ? item.code : undefined, activityName: undefined, usesSavedNames: names.length > 0, energyDimension: item.energy_dimension ?? undefined, date: draft?.date ?? today } });
+    setCustomTime(false); setError(''); setStep(names.length ? 'saved-name' : item.requires_custom_name ? 'name' : 'duration');
   }
   function selectDate(date: string) {
     if (!draft) { setStep('activity'); return; }
@@ -53,8 +56,9 @@ export default function ActivityEntry() {
     if (message) { setError(message); return; }
     router.push('/review');
   }
-  const titles: Record<Step,string> = { kind:'Qual atividade você fez?', activity:kind === 'physical' ? 'Atividade física' : 'Atividade mental', name:'Qual foi a atividade?', duration:'Quanto tempo?', when:'Quando aconteceu?' };
-  return <ActivityStepScreen title={titles[step]} step={step === 'kind' ? 1 : step === 'activity' || step === 'name' ? 2 : step === 'duration' ? 3 : 4} onBack={back} onClose={close} footer={<Button secondary title="Cancelar" onPress={cancel}/>}>
+  const titles: Record<Step,string> = { kind:'Qual atividade você fez?', activity:kind === 'physical' ? 'Atividade física' : 'Atividade mental', 'saved-name':'Qual treino você fez?', name:'Qual foi a atividade?', duration:'Quanto tempo?', when:'Quando aconteceu?' };
+  const extra = draft?.usesSavedNames ? 1 : 0;
+  return <ActivityStepScreen title={titles[step]} total={5 + extra} step={step === 'kind' ? 1 : step === 'activity' ? 2 : step === 'saved-name' || step === 'name' ? 2 + extra : step === 'duration' ? 3 + extra : 4 + extra} onBack={back} onClose={close} footer={<Button secondary title="Cancelar" onPress={cancel}/>}>
     {step === 'kind' && <>
       {(['physical','intellectual'] as const).map(value=><Pressable key={value} accessibilityRole="button" onPress={()=>{setKind(value);setSearch('');setError('');setStep('activity');}} style={s.choice}><Icon name={value==='physical'?'activity':'book'} size={26} color={value==='physical'?colors.lime:colors.primary}/><Text style={s.label}>{value==='physical'?'Física':'Mental'}</Text><Icon name="arrow"/></Pressable>)}
       {draft?.type && resumeKind && <Button secondary title="Continuar registro" onPress={()=>{setKind(resumeKind);update({energyDimension:resumeKind});setStep('duration');}}/>}
@@ -68,6 +72,12 @@ export default function ActivityEntry() {
       {!visible.length && !api.busy && <><Notice>Nenhuma atividade disponível para esta busca.</Notice>{apiEnabled && <Button secondary title="Atualizar atividades" onPress={()=>{void api.refresh().catch(()=>setError('Não foi possível atualizar as atividades.'));}}/>}</>}
     </>}
     {step === 'name' && <><Field label="Nome da atividade" value={draft?.activityName ?? ''} maxLength={80} onChangeText={activityName=>update({activityName})} placeholder="O que você fez?"/><Button title="Continuar" onPress={()=>{if(!draft?.activityName || draft.activityName.trim().length<2){setError('Informe um nome com pelo menos 2 caracteres.');return;}setError('');setStep('duration');}}/></>}
+    {step === 'saved-name' && <>
+      <Copy>Você já usou estes nomes em {selected?.name}. Escolha um para este registro.</Copy>
+      {savedNames.map(name => <Pressable key={name} accessibilityRole="button" onPress={() => { update({ activityName: name }); setStep('duration'); }} style={s.choice}><Text style={s.label}>{name}</Text><Icon name="arrow" size={20}/></Pressable>)}
+      {!selected?.requires_custom_name && <Button secondary title={`Usar ${selected?.name}`} onPress={() => { update({ activityName: undefined }); setStep('duration'); }}/>}
+      <Button secondary title="Informar outro nome" onPress={() => { update({ activityName: '' }); setStep('name'); }}/>
+    </>}
     {step === 'duration' && <>
       <Text style={s.hint}>{draft?.activityName || draft?.type}</Text>
       <View style={s.grid}>{[10,20,30,45,60,90].map(minutes=><Pressable key={minutes} accessibilityRole="button" accessibilityLabel={`${minutes} minutos`} onPress={()=>{update({minutes:String(minutes)});setStep('when');}} style={s.option}><Text style={s.value}>{minutes} min</Text></Pressable>)}</View>

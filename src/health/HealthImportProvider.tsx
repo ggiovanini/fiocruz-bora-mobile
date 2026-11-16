@@ -6,7 +6,7 @@ import { useHealth } from './HealthProvider';
 import { preferenceKey,type WorkoutPreference, HealthImportQueue } from './importQueue';
 import type { HealthWorkout } from './model';
 
-type ContextValue={statuses:ReturnType<HealthImportQueue['getSnapshot']>;submit:(workout:HealthWorkout,code:string,dimension?:'physical'|'intellectual',remember?:boolean)=>Promise<void>;preferences:Record<string,WorkoutPreference>};
+type ContextValue={statuses:ReturnType<HealthImportQueue['getSnapshot']>;submit:(workout:HealthWorkout,code:string,remember?:boolean)=>Promise<void>;preferences:Record<string,WorkoutPreference>};
 const Context=createContext<ContextValue|null>(null);
 export function HealthImportProvider({children}:PropsWithChildren) {
   const {state,api,ready:identityReady}=useMock();
@@ -50,15 +50,15 @@ export function HealthImportProvider({children}:PropsWithChildren) {
       if(imported && allowed())void context.current.api.refresh().catch(()=>{});
     });
   },[preferencesReady,preferences,queue,health.snapshot,health.automaticImport,health.automatic,health.connected,ready,identityReady,preferenceError,api.data.catalog,api.data.consent?.status,state.offline,state.userId,state.membershipId]);
-  const submit=async(workout:HealthWorkout,code:string,dimension?:'physical'|'intellectual',remember=false)=>{
+  const submit=async(workout:HealthWorkout,code:string,remember=false)=>{
     if(!allowed())throw new Error('Conecte o aparelho e confira os termos de registro antes de enviar.');
-    await queue.submit(workout,code,dimension,'manual',allowed);
+    await queue.submit(workout,code,'manual',allowed);
     if(queue.getSnapshot()[workout.id]?.status==='imported' && allowed()) {
       await context.current.api.refresh().catch(()=>{});
       if(remember && workout.nativeType) {
         try {
-          await apiRequest('/me/health-workout-preferences',{method:'PUT',body:JSON.stringify({source:workout.source,native_type:workout.nativeType,activity_type:code,energy_dimension:dimension})},owner.current.userId);
-          if(allowed())setPreferences(previous=>({...previous,[preferenceKey(workout)]:{activity_type:code,energy_dimension:dimension}}));
+          await apiRequest('/me/health-workout-preferences',{method:'PUT',body:JSON.stringify({source:workout.source,native_type:workout.nativeType,activity_type:code,...(workout.name ? {workout_name:workout.name} : {})})},owner.current.userId);
+          if(allowed())setPreferences(previous=>({...previous,[preferenceKey(workout)]:{activity_type:code}}));
         } catch { throw new Error('Treino registrado, mas não foi possível salvar a preferência no perfil.'); }
       }
     }

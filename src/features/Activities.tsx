@@ -131,7 +131,7 @@ export function Review() {
     dispatch({ type: "enqueue", value: activity });
     router.replace({ pathname: "/activity-result", params: { id: d.id, celebrate: '1', dimension: d.energyDimension ?? 'physical' } });
   }
-  return <ActivityStepScreen title="Tudo certo?" step={5} onBack={() => router.back()} onClose={() => router.replace('/home')}
+  return <ActivityStepScreen title="Tudo certo?" step={d.usesSavedNames ? 6 : 5} total={d.usesSavedNames ? 6 : 5} onBack={() => router.back()} onClose={() => router.replace('/home')}
     footer={<><Button title={state.offline ? "Salvar para enviar depois" : "Confirmar atividade"} busy={submitted} disabled={submitted} onPress={() => { void submit(); }}/><Button secondary title="Cancelar" disabled={submitted} onPress={cancel}/>{!!error && <Notice>{error}</Notice>}</>}>
     <Card title={activityTitle(d)}>
       <Copy>{d.energyDimension === 'intellectual' ? 'Atividade mental' : d.energyDimension === 'physical' ? 'Atividade física' : 'Atividade'}</Copy>

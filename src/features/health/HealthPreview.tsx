@@ -7,14 +7,14 @@ import type {HealthWorkout} from '@/health/model';
 import type {ImportStatus} from '@/health/importQueue';
 import {WorkoutImportView} from './WorkoutImportView';
 
-const catalog:CatalogItem[]=[['walking','Caminhada','physical'],['running','Corrida','physical'],['cycling','Ciclismo','physical'],['yoga','Yoga','choice']].map(([code,name,energy])=>({code,name,energy_dimension:energy as CatalogItem['energy_dimension'],discovery_group:'movement',requires_custom_name:false,ev_per_minute:'1',scoring_status:'configured',timezone:'America/Sao_Paulo',recording_window_days:7}));
+const catalog:CatalogItem[]=[['walking','Caminhada','physical'],['running','Corrida','physical'],['cycling','Ciclismo','physical'],['yoga','Yoga','physical']].map(([code,name,energy])=>({code,name,energy_dimension:energy as CatalogItem['energy_dimension'],discovery_group:'movement',requires_custom_name:false,ev_per_minute:'1',scoring_status:'configured',timezone:'America/Sao_Paulo',recording_window_days:7}));
 function examples():HealthWorkout[] {
  return [{id:'walk',kind:'Caminhada',minutes:35,days:0},{id:'run',kind:'Corrida',minutes:25,days:0},{id:'bike',kind:'Ciclismo',minutes:45,days:1},{id:'yoga',kind:'Yoga',minutes:20,days:2}].map((item,index)=>{
   const start=new Date();start.setUTCDate(start.getUTCDate()-item.days);start.setUTCHours(11+index,0,0,0);
   return {id:item.id,externalId:`visual-example-${item.id}`,source:Platform.OS==='android'?'health-connect':'healthkit',origin:'Relógio de exemplo',kind:item.kind,start:start.toISOString(),end:new Date(start.getTime()+item.minutes*60000).toISOString(),durationMinutes:item.minutes,status:'local-only'};
  });
 }
-const initialStatuses=():Record<string,ImportStatus>=>({walk:{status:'imported',awardedEv:35},run:{status:'sending'},bike:{status:'failed',message:'Exemplo: não foi possível conectar. Você pode simular uma nova tentativa.',retryable:true},yoga:{status:'review',message:'Escolha Física ou Mental para este treino de exemplo.'}});
+const initialStatuses=():Record<string,ImportStatus>=>({walk:{status:'imported',awardedEv:35},run:{status:'sending'},bike:{status:'failed',message:'Exemplo: não foi possível conectar. Você pode simular uma nova tentativa.',retryable:true},yoga:{status:'review',message:'Confira a atividade correspondente a este treino de exemplo.'}});
 export default function HealthPreview() {
  const [workouts]=useState(examples);
  const [statuses,setStatuses]=useState(initialStatuses);

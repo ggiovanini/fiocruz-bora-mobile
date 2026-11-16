@@ -7,7 +7,7 @@ Use Node 20.19.4, JDK 17 e Android SDK configurado. A fonte das configurações 
 Após alterar pacote, versão, ícones, permissões ou plugins:
 
 ```sh
-npx expo prebuild --platform android --no-install
+npx expo prebuild --platform android --no-clean --no-install
 npx expo run:android
 ```
 
@@ -22,7 +22,7 @@ npx expo run:android
 
 ## Identidade
 
-O identificador atual é `br.fiocruz.mobile.bora`, com versão 1.0.2 e versionCode 155. O identificador anterior, `br.fiocruz.boramobile`, representa outra instalação no Android; o sistema não migra seus dados locais automaticamente. Para próximos builds distribuídos, incremente `android.versionCode` em `app.json`.
+O identificador atual é `br.fiocruz.mobile.bora`, com versão 1.0.2 e versionCode 160. O identificador anterior, `br.fiocruz.boramobile`, representa outra instalação no Android; o sistema não migra seus dados locais automaticamente. Para próximos builds distribuídos, incremente `android.versionCode` em `app.json`.
 
 ## Configurações que precisam sobreviver ao prebuild
 
@@ -57,7 +57,7 @@ O símbolo do ícone adaptativo cabe no círculo seguro de diâmetro 66/108 do A
 
 ```sh
 npm run assets:android
-npx expo prebuild --platform android --no-install
+npx expo prebuild --platform android --no-clean --no-install
 npm run android
 ```
 
@@ -90,3 +90,26 @@ Android incrementado de 157 para 158 em `app.json` e `android/app/build.gradle`,
 A compilação Release gerou APK e AAB com Node 20.19.4, JDK 17 e as quatro arquiteturas configuradas no projeto. A chave de upload existente, guardada fora do repositório, foi aplicada por uma configuração temporária do Gradle; senhas e chave não foram adicionadas ao projeto. A configuração padrão de assinatura do template não é a usada nesses dois arquivos distribuíveis.
 
 Arquivos `bora-1.0.2-158.apk` e `bora-1.0.2-158.aab` salvos na pasta local de assinatura Android do projeto. A versão e o pacote do APK foram conferidos com AAPT; APK e AAB tiveram suas assinaturas verificadas e comparadas ao certificado de upload existente. O build usa a API definida em `.env.testflight` e desabilita login local. Esta preparação não envia arquivos à Google Play nem inclui teste em aparelho.
+
+
+## Versão 1.0.2 · build 159 · 13/11/2026
+
+Número de build incrementado para 159 em iOS e Android. Prebuild das duas plataformas executado com `--no-clean --no-install`, preservando os ajustes nativos existentes. No Expo atual, use `--no-clean` explicitamente para atualizar os projetos sem recriar as pastas. Esta etapa prepara os projetos; não gera Archive, APK ou AAB.
+
+
+Compilação Release do build 159 concluída com `assembleRelease bundleRelease` nas quatro arquiteturas, Node 20.19.4 e JDK 17. APK e AAB assinados com a chave de upload existente, aplicada por configuração temporária fora do repositório. Pacote `br.fiocruz.mobile.bora`, versão 1.0.2 e versionCode 159 conferidos no APK. Assinaturas dos dois arquivos verificadas e comparadas ao certificado público de upload.
+
+Arquivos `bora-1.0.2-159.apk` (144,5 MB) e `bora-1.0.2-159.aab` (96,5 MB) salvos na pasta local `assinatura-android` do projeto. Nenhum envio à loja ou teste em aparelho foi realizado nesta etapa.
+
+## Versão 1.0.2 · build 160 · 16/11/2026
+
+Prebuild sem limpeza concluído; `app.json` e projeto Android usam versionCode 160. Compilação Release concluída com `assembleRelease bundleRelease`, Node 24.22.3 e JDK 17. As quatro arquiteturas foram preservadas. A chave de upload existente foi aplicada por configuração temporária do Gradle, sem copiar senha ou chave para o repositório.
+
+Entregues em `Clients/Fiocruz/Projeto Bora/assinatura-android`:
+
+- `bora-1.0.2-160.apk`: 152.356.078 bytes, para instalação direta.
+- `bora-1.0.2-160.aab`: 102.112.410 bytes, para Google Play.
+
+Assinaturas verificadas e comparadas ao certificado público de upload; integridade dos dois arquivos e presença de `armeabi-v7a`, `arm64-v8a`, `x86` e `x86_64` conferidas. Pacote `br.fiocruz.mobile.bora`, versão 1.0.2 e build 160 confirmados no APK. A URL de staging de `.env.testflight` está incorporada no bundle, e o fluxo Release desabilita o login local. Os 145 testes do app passaram após o prebuild.
+
+Nenhum envio à loja ou teste deste binário em aparelho foi realizado. Publicar também a API atualizada e sua migration de meta inicial para disponibilizar por completo as melhorias de sessão, meta e nomes de treinos.

@@ -12,6 +12,7 @@ import {
 } from "@/ui/Flow";
 import { OrganizationChoice } from './OrganizationRegistration';
 import LoginScreen from "./access/LoginScreen";
+import InitialGoalScreen from './access/InitialGoalScreen';
 import { ParticipantAvatar } from "./avatar/ParticipantAvatar";
 import { hasAccess, useMock } from "@/mocks/MockProvider";
 
@@ -23,6 +24,7 @@ type Step =
   | "organization-waiting"
   | "consent"
   | "profile"
+  | "goal"
   | "error"
   | "ineligible"
   | "declined";
@@ -38,7 +40,7 @@ export default function Onboarding() {
   const firstStep: Step =
     state.session === "active"
       ? needsOrganization ? "organization" : pendingRegistration && !waitingAcknowledged && !state.accepted ? "organization-waiting" : state.accepted
-        ? "profile"
+        ? state.profileComplete && state.initialGoalSelected === false ? "goal" : "profile"
         : "consent"
       : "login";
   const [step, setStep] = useState<Step>(firstStep);
@@ -48,9 +50,9 @@ export default function Onboarding() {
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     if (!apiEnabled || state.session !== 'active') return;
-    setStep(needsOrganization ? 'organization' : pendingRegistration && !waitingAcknowledged && !state.accepted ? 'organization-waiting' : !state.accepted ? 'consent' : 'profile');
+    setStep(needsOrganization ? 'organization' : pendingRegistration && !waitingAcknowledged && !state.accepted ? 'organization-waiting' : !state.accepted ? 'consent' : state.profileComplete && state.initialGoalSelected === false ? 'goal' : 'profile');
     setName(state.name);
-  }, [state.session, state.membershipId, state.accepted, needsOrganization, pendingRegistration?.id, waitingAcknowledged]);
+  }, [state.session, state.membershipId, state.accepted, state.profileComplete, state.initialGoalSelected, needsOrganization, pendingRegistration?.id, waitingAcknowledged]);
   useEffect(() => { setAccepted(false); }, [api.data.consent?.policy_version, state.membershipId]);
   const policyAvailable = !apiEnabled || !!(api.data.consent?.configured && (api.data.consent.document_version || api.data.consent.policy_url));
   if (hasAccess(state) && !needsOrganization) return <Redirect href="/" />;
@@ -72,7 +74,7 @@ export default function Onboarding() {
       } finally { setLoading(false); }
       return;
     }
-    dispatch({ type: "patch", value: { session: "active" } });
+    dispatch({ type: "patch", value: { session: "active", ...(!state.profileComplete ? { initialGoalSelected: false } : {}) } });
     setStep(state.accepted ? "profile" : "organization");
   }
   if (step === "login") return <LoginScreen
@@ -81,6 +83,16 @@ export default function Onboarding() {
     onLogin={() => login()}
     onReconnect={() => { dispatch({ type: "patch", value: { offline: false } }); setLoginError(""); }}
   />;
+  if (step === 'goal') return <InitialGoalScreen onSelect={async goal => {
+    if (apiEnabled) {
+      try { await api.selectInitialGoal(goal); }
+      catch (failure) {
+        // A successful save may have lost its response; recover server completion on retry.
+        await api.refresh().catch(() => {});
+        throw failure;
+      }
+    } else dispatch({ type: 'patch', value: { initialGoalSelected: true, dailyGoal: goal } });
+  }} />;
   const title = {
     organization: "De onde você vem?",
     "organization-waiting": "Sua escolha está salva!",
@@ -183,13 +195,16 @@ export default function Onboarding() {
           />
           <Copy muted>{state.organization}</Copy>
           <Button
-            title="Concluir e começar"
-            disabled={!name.trim()}
+            title={state.initialGoalSelected === false ? 'Continuar para minha meta' : 'Concluir e começar'}
+            disabled={!name.trim() || loading}
             onPress={async () => {
+              if (loading) return;
+              setLoading(true); setLoginError('');
               try {
                 if (apiEnabled) await api.saveProfile(name);
-                else dispatch({ type: 'patch', value: { name: name.trim(), profileComplete: true } });
+                else { dispatch({ type: 'patch', value: { name: name.trim(), profileComplete: true } }); if (state.initialGoalSelected === false) setStep('goal'); }
               } catch (error) { setLoginError(error instanceof Error ? error.message : 'Não foi possível salvar.'); }
+              finally { setLoading(false); }
             }}
           />
         </>

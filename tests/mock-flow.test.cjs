@@ -131,7 +131,7 @@ test("expanded discovery catalogue accepts movement and mind without assigning E
   assert.ok(validateDraft({ ...newDraft(), type: "not-in-catalogue", minutes: "30" }));
 });
 test("custom activity needs a meaningful bounded name and survives draft restore", () => {
-  const draft = { ...newDraft(), type: "Outra atividade", activityName: "Tocar violão", minutes: "20" };
+  const draft = { ...newDraft(), type: "Outras atividades mentais", activityName: "Tocar violão", minutes: "20" };
   assert.equal(validateDraft(draft), null);
   assert.equal(model.exports.activityTitle(draft), "Tocar violão");
   for (const activityName of [undefined, " ", "x", "a".repeat(81)])

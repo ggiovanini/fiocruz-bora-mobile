@@ -12,9 +12,9 @@ Os atalhos Física/Mental da Home abrem diretamente a etapa 2. Rascunhos continu
 
 ## Duas dimensões, sem terceira categoria
 
-Conferidos os enums EnergyDimension e RateDimension e o catálogo de ActivityController no repositório da API. Energia admite physical e intellectual; choice permite que o participante escolha entre elas. DiscoveryGroup também possui wellbeing, mas esse campo não representa uma terceira energia. O app anterior expunha esse grupo como filtro “Bem-estar”.
+Conferidos os enums EnergyDimension e RateDimension e o catálogo de ActivityController no repositório da API. Energia admite somente physical e intellectual; cada atividade tem uma classificação definida no catálogo. DiscoveryGroup também possui wellbeing, mas esse campo não representa uma terceira energia. O app anterior expunha esse grupo como filtro “Bem-estar”.
 
-As listas agora priorizam energy_dimension retornada pela API. Choice aparece nas duas opções e registra a escolha do participante. Catálogos sem dimensão configurada usam discovery_group apenas como compatibilidade; itens genéricos não são escondidos. Nada foi alterado na API. Nomes de atividades como “Pausa de bem-estar” continuam sendo os nomes publicados no catálogo.
+As listas agora priorizam energy_dimension retornada pela API. As listas contêm somente atividades com a dimensão correspondente. Não há fallback pelo grupo editorial nem escolha de dimensão no registro. Nomes de atividades como “Pausa de bem-estar” continuam sendo os nomes publicados no catálogo.
 
 ## Encerramento
 
@@ -31,4 +31,10 @@ A tipografia e o botão são componentes acessíveis, não parte do bitmap.
 
 ## Validação
 
-91 testes aprovados, incluindo classificação por dimensão, atividades choice, janela de datas e mensagens que não antecipam pontos da API. TypeScript e exportação iOS/Android/web concluídos. Conferida no simulador a sequência física até o resumo de confirmação. Nenhuma atividade foi enviada ao servidor na validação; ficou um rascunho de teste de Caminhada, 30 minutos, hoje, na confirmação.
+91 testes aprovados, incluindo classificação por dimensão, atividades com dimensão fixa, janela de datas e mensagens que não antecipam pontos da API. TypeScript e exportação iOS/Android/web concluídos. Conferida no simulador a sequência física até o resumo de confirmação. Nenhuma atividade foi enviada ao servidor na validação; ficou um rascunho de teste de Caminhada, 30 minutos, hoje, na confirmação.
+
+## Reutilizar nomes anteriores — 16/11/2026
+
+Depois de escolher a categoria, surge “Qual treino você fez?” somente quando a pessoa já usou nomes diferentes do nome padrão nessa categoria. Pode reutilizar um nome, manter o nome padrão ou informar outro. A categoria continua determinando dimensão e taxa; o nome escolhido identifica o registro na revisão e no histórico. A etapa extra ajusta a contagem e a barra de progresso para seis etapas. Sem nomes anteriores, o fluxo de cinco etapas é preservado.
+
+Os nomes vêm de `GET /me/activity-names`, complementados pelos registros confirmados já carregados. A lista é privada, ignora rejeitados e duplicatas e não cria sugestões a partir de registros pendentes ou rascunhos. O nome escolhido acompanha o payload durável e sua chave idempotente.

@@ -54,6 +54,10 @@ const adapter: HealthAdapter = {
         [hc.ExerciseType.SWIMMING_POOL]: "Natação",
         [hc.ExerciseType.SWIMMING_OPEN_WATER]: "Natação",
         [hc.ExerciseType.YOGA]: "Yoga",
+        [hc.ExerciseType.STRENGTH_TRAINING]: "Musculação",
+        [hc.ExerciseType.WEIGHTLIFTING]: "Musculação",
+        [hc.ExerciseType.HIGH_INTENSITY_INTERVAL_TRAINING]: "Treino intervalado",
+        [hc.ExerciseType.EXERCISE_CLASS]: "Treino",
       };
       let pageToken: string | undefined;
       const tokens = new Set<string>();
@@ -78,6 +82,7 @@ const adapter: HealthAdapter = {
             origin: record.metadata?.dataOrigin || "Origem não informada",
             nativeType: String(record.exerciseType),
             kind: names[record.exerciseType] || "Outro treino",
+            name: record.title,
             start: record.startTime,
             end: record.endTime,
           });

@@ -7,7 +7,9 @@ test('workout import preserves stable source identity and active duration withou
  const a=importPayload(workout,'walking');assert.deepEqual(a,importPayload(workout,'walking'));
  assert.equal(a.duration_seconds,1200);assert.equal(a.source,'apple_health');assert.equal(a.confirmed,true);
  assert.equal(a.origin,undefined);assert.equal(a.steps,undefined);assert.equal(a.user_id,undefined);assert.equal(a.ev,undefined);
- assert.equal(importPayload({...workout,source:'health-connect'},'yoga','physical').energy_dimension,'physical');
+ assert.equal(importPayload({...workout,name:'Natação na piscina',kind:'Outro treino'},'swimming').workout_name,'Natação na piscina');
+ assert.equal(importPayload({...workout,kind:'Musculação'},'workout').workout_name,'Musculação');
+ assert.equal(importPayload({...workout,source:'health-connect'},'yoga').energy_dimension,undefined);
  assert.throws(()=>importPayload({...workout,durationMinutes:40},'walking'));
  assert.throws(()=>importPayload({...workout,durationMinutes:0},'walking'));
 });

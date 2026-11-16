@@ -31,8 +31,9 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
     const request = ++sequence.current;
     setBusy(true); setError('');
     try {
-      const [profile, memberships, energy, catalog, registrations] = await Promise.all([
+      const [profile, memberships, energy, catalog, registrations, names] = await Promise.all([
         apiRequest('/me'), apiRequest('/me/memberships'), apiRequest('/me/energy'), apiRequest('/activity-types'), apiRequest('/me/organization-requests'),
+        apiRequest('/me/activity-names').catch(failure => { if (failure instanceof ApiError && failure.status === 404) return { data: [] }; throw failure; }),
       ]);
       if (!valid(token) || request !== sequence.current) return;
       if (profile.data.id !== userId) throw new Error('A conta mudou. Entre novamente.');
@@ -59,11 +60,12 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
         for (const day of energy.data.days) days.set(day.date, day);
         energy.data.days = [...days.values()];
       }
-      update({ profile: profile.data, memberships: memberships.data, registrations: registrations.data ?? [], catalog: catalog.data, energy: energy.data, consent, nextCursor: history.next_cursor });
+      update({ profile: profile.data, memberships: memberships.data, registrations: registrations.data ?? [], activityNames: names.data ?? [], catalog: catalog.data, energy: energy.data, consent, nextCursor: history.next_cursor });
       const latestLocal = switched ? local : current.current;
       commit({ ...initialState, ...latestLocal, userId, membershipId: member?.id, session: 'active',
         name: profile.data.display_name, organization: member?.organization_name ?? '', offline: false, failNext: false,
         accepted: consent?.status === 'granted', profileComplete: !!profile.data.display_name?.trim() && (!!profile.data.organization_selection_completed_at || memberships.data.length > 0),
+        initialGoalSelected: profile.data.initial_goal_selected !== false,
         activities: mergeActivities(latestLocal.activities, history.data),
       });
       const id = await installation(userId);
@@ -133,6 +135,13 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
     const result = await apiRequest('/me/energy/goal', { method: 'PUT', body: JSON.stringify({ goal_ev: goal }) });
     if (valid(token) && dataRef.current.energy) update({ ...dataRef.current, energy: { ...dataRef.current.energy, scheduled_goal: result.data } });
     return result.data as { goal_ev: number; effective_from: string };
+  };
+  const selectInitialGoal = async (goal: number) => {
+    const token = generation.current;
+    await apiRequest('/me/energy/initial-goal', { method: 'PUT', body: JSON.stringify({ goal_ev: goal }) });
+    if (!valid(token)) return;
+    // Load the authoritative goal, profile and projections before opening the journey.
+    await refresh();
   };
   const cancelGoal = async () => {
     const token = generation.current;
@@ -232,5 +241,5 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
     update(emptyJourney); setBusy(false);
     commit({ ...current.current, session: 'expired', accepted: false });
   };
-  return { data, busy, error, connect, login, selectMembership, acceptConsent, saveProfile, saveGoal, cancelGoal, requestReturn, enqueue, send, refresh, loadMore, loadEnergyMonth, logout, expire };
+  return { data, busy, error, connect, login, selectMembership, acceptConsent, saveProfile, selectInitialGoal, saveGoal, cancelGoal, requestReturn, enqueue, send, refresh, loadMore, loadEnergyMonth, logout, expire };
 }

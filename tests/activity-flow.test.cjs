@@ -12,10 +12,10 @@ test('API scoring dimension wins over discovery group when displaying the two ac
  assert.equal(supportsEnergy({energy_dimension:'physical',discovery_group:'wellbeing'},'physical'),true);
  assert.equal(supportsEnergy({energy_dimension:'physical',discovery_group:'wellbeing'},'intellectual'),false);
 });
-test('choice activities remain available in either energy, without introducing a third category',()=>{
- for(const kind of ['physical','intellectual']) assert.equal(supportsEnergy({energy_dimension:'choice',discovery_group:'wellbeing'},kind),true);
+test('unconfigured activities are excluded from both energy lists',()=>{
+ for(const kind of ['physical','intellectual']) assert.equal(supportsEnergy({energy_dimension:'choice',discovery_group:'wellbeing'},kind),false);
  assert.equal(supportsEnergy({energy_dimension:null,discovery_group:'mind'},'physical'),false);
- assert.equal(supportsEnergy({energy_dimension:null,discovery_group:'movement'},'physical'),true);
+ assert.equal(supportsEnergy({energy_dimension:null,discovery_group:'movement'},'physical'),false);
 });
 test('date choices follow the API window across month and year boundaries, never including future dates',()=>{
  assert.deepEqual(recentDates('2027-01-02',3),['2027-01-02','2027-01-01','2026-12-31']);

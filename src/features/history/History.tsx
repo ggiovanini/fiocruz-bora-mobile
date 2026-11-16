@@ -41,7 +41,7 @@ export default function History() {
   const localQueue=cached.filter(item=>item.status!=='confirmed');
   const items=query && apiEnabled && !offlineSearch ? [...new Map([...localQueue,...found.items].map(item=>[item.id,item])).values()].sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt.localeCompare(a.createdAt)) : cached;
   const visibleItems=items.filter(item=>filter==='all' || (filter==='device' ? ['apple_health','health_connect'].includes(item.source ?? '') : !item.source || item.source==='manual'));
-  const workouts=filter==='device' ? (health.state.snapshot?.workouts ?? []).filter(workout=>imports.statuses[workout.id]?.status!=='imported' && normalize(workout.kind).includes(normalize(query))) : [];
+  const workouts=filter==='device' ? (health.state.snapshot?.workouts ?? []).filter(workout=>imports.statuses[workout.id]?.status!=='imported' && normalize(`${workout.name || ''} ${workout.kind}`).includes(normalize(query))) : [];
   const detail=selected ? items.find(item=>item.id===selected.id) ?? state.activities.find(item=>item.id===selected.id) ?? selected : undefined;
   const busy=query && apiEnabled ? found.busy : api.busy;
   const updating=!!busy || refreshing || (filter==='device' && health.state.busy);
