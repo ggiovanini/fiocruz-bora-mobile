@@ -7,7 +7,7 @@ const vm = require('node:vm');
 const mod = { exports: {} };
 vm.runInNewContext(fs.readFileSync('metro.config.js', 'utf8'), {
   __dirname: path.resolve('.'), module: mod,
-  require: Object.assign(name => name === 'expo/metro-config' ? { getDefaultConfig: () => ({ resolver: {} }) } : require(name), { resolve: require.resolve }),
+  require: Object.assign(name => name === 'expo/metro-config' ? { getDefaultConfig: () => ({ resolver: { assetExts: ['png'] } }) } : require(name), { resolve: require.resolve }),
 });
 test('all platforms resolve Fiber and app Three imports to the ESM entry, not the Node-only CJS shim', () => {
   for (const platform of ['ios', 'android', 'web']) {
@@ -22,4 +22,9 @@ test('other packages retain Expo resolver behavior and platform', () => {
   const expected = { type: 'sourceFile', filePath: '/example/ios.tsx' };
   const context = {resolveRequest(ctx, name, platform) { assert.equal(ctx, context); assert.equal(name, 'expo-gl'); assert.equal(platform, 'ios'); return expected; }};
   assert.equal(mod.exports.resolver.resolveRequest(context, 'expo-gl', 'ios'), expected);
+});
+
+test('Metro recognizes packaged GLB models as assets', () => {
+  assert.ok(mod.exports.resolver.assetExts.includes('glb'));
+  assert.ok(mod.exports.resolver.assetExts.includes('png'));
 });

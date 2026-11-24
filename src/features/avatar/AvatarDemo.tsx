@@ -33,7 +33,7 @@ function AvatarPreview() {
   return <Flow title="Seu avatar em movimento">
     <Copy muted>Prova de conceito · sua energia física e intelectual, juntas.</Copy>
     <View style={styles.viewport} accessibilityLabel={`Avatar de energia em 3D. Energia física: ${energy.green} EV. Energia mental: ${energy.blue} EV. Total: ${daily.total} de ${goal} EV hoje.`}>
-      <EnergyAvatar motion={motion} playing={playing} respectReducedMotion={false} speed={speed} greenProgress={daily.greenProgress} blueProgress={daily.blueProgress} height={420} />
+      <EnergyAvatar beanPreview motion={motion} playing={playing} respectReducedMotion={false} speed={speed} greenProgress={daily.greenProgress} blueProgress={daily.blueProgress} height={420} />
     </View>
     <Card title={`Energia Vital de hoje · ${daily.total} / ${goal} EV`}>
       <Copy>{Math.round(daily.progress)}% da meta diária · {daily.complete ? 'Meta atingida!' : `Faltam ${daily.remaining} EV`}</Copy>
@@ -46,7 +46,7 @@ function AvatarPreview() {
       <Copy muted>O objetivo é manter a constância diária em EV. O arco mostra o progresso, sem cotas obrigatórias por tipo.</Copy>
     </Card>
     <Card title="Experimentar movimentos">
-      {([['idle', 'Respirar'], ['walk', 'Caminhar'], ['celebrate', 'Comemorar']] as const).map(([value, label]) => <Button key={value} title={`${motion === value ? '✓ ' : ''}${label}`} secondary={motion !== value} onPress={() => { setMotion(value); }} />)}
+      {([['idle', 'Respirar'], ['walk', 'Caminhar'], ['wave', 'Acenar'], ['celebrate', 'Comemorar']] as const).map(([value, label]) => <Button key={value} title={`${motion === value ? '✓ ' : ''}${label}`} secondary={motion !== value} onPress={() => { setMotion(value); }} />)}
       <Button title={playing ? 'Pausar animação' : 'Reproduzir animação'} secondary onPress={() => setPlaying(!playing)} />
       <Button title={`Velocidade: ${speed}×`} secondary onPress={() => setSpeed(speed === 1 ? 1.5 : speed === 1.5 ? .5 : 1)} />
     </Card>

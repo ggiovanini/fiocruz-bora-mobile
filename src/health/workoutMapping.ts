@@ -12,7 +12,7 @@ const aliases: Record<string, string[]> = {
 /** Exact words/phrases, specific categories before generic training; ambiguous titles use the native modality. */
 export function resolveWorkoutActivity(workout: HealthWorkout, catalog: CatalogItem[]): CatalogItem | undefined {
   const physical = catalog.filter(item => item.scoring_status === 'configured' && item.energy_dimension === 'physical');
-  const title = ` ${normalizeActivityName(workout.name || '')} `;
+  const title = ` ${normalizeActivityName(workout.name || workout.kind)} `;
   const hits = physical.filter(item => !item.requires_custom_name).map(item => ({ item, score: Math.max(0,
     ...[item.name || '', ...(aliases[item.code] || [])].map(name => normalizeActivityName(name)).filter(Boolean)
       .filter(name => title.includes(` ${name} `)).map(name => name.split(' ').length)) })).filter(hit => hit.score > 0);

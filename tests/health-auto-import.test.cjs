@@ -88,21 +88,14 @@ test('a connectivity failure pauses the batch instead of flooding the service wi
  assert.deepEqual(sent,['one','one','two']);
 });
 
-test('profile preferences distinguish native modalities and use only the activity mapping',async()=>{
+test('legacy manual mappings are ignored and native categories are assigned automatically',async()=>{
  const sent=[];const queue=new HealthImportQueue(async payload=>{sent.push(payload);return ok();});
- const preferences={'healthkit:50':{activity_type:'yoga',energy_dimension:'physical'}};
- await queue.automatic([{...workout('strength','Outro treino'),nativeType:'50'},{...workout('cooldown','Outro treino'),nativeType:'80'}],catalog,'one',()=>true,preferences);
- assert.equal(sent.length,1);assert.equal(sent[0].external_id,'strength');assert.equal(sent[0].energy_dimension,undefined);
- assert.equal(queue.getSnapshot()['healthkit:cooldown'].status,'review');
-});
-
-test('legacy preference dimensions cannot override the catalog or make an unconfigured activity importable',async()=>{
- const sent=[];const queue=new HealthImportQueue(async payload=>{sent.push(payload);return ok();});
- await queue.automatic([{...workout('legacy','Outro treino'),nativeType:'50'}],catalog,'one',()=>true,{'healthkit:50':{activity_type:'yoga',energy_dimension:'intellectual'}});
- assert.equal(sent[0].activity_type,'yoga');assert.equal(sent[0].energy_dimension,undefined);
- const invalid=new HealthImportQueue(async payload=>{sent.push(payload);return ok();});
+ await queue.automatic([{...workout('walk','Caminhada'),nativeType:'52'}],catalog,'one',()=>true,{'healthkit:52':{activity_type:'yoga'}});
+ assert.equal(sent.length,1);assert.equal(sent[0].activity_type,'walking');
+ assert.equal(sent[0].workout_name,'Caminhada');assert.equal(sent[0].energy_dimension,undefined);
+ const invalid=new HealthImportQueue(ok);
  await invalid.automatic([workout('bad','Yoga')],[{...catalog[1],energy_dimension:'choice'}],'one',()=>true);
- assert.equal(sent.length,1);assert.equal(invalid.getSnapshot()['healthkit:bad'].status,'review');
+ assert.equal(invalid.getSnapshot()['healthkit:bad'].status,'review');
 });
 
 test('unknown named workouts fall back to other physical activities and keep their own title',async()=>{
@@ -113,13 +106,11 @@ test('unknown named workouts fall back to other physical activities and keep the
  assert.equal(queue.getSnapshot()['healthkit:tennis'].status,'imported');
 });
 
-test('remembered mappings can distinguish named workouts sharing the same native modality',async()=>{
- const {preferenceKey}=load('src/health/importQueue.ts');
- const first={...workout('one','Outro treino'),nativeType:'50',name:'Minha Natação'};
+test('different titles sharing a native modality keep their names and receive automatic categories',async()=>{
+ const first={...workout('one','Outro treino'),nativeType:'50',name:'Minha Yoga'};
  const second={...workout('two','Outro treino'),nativeType:'50',name:'Minha caminhada'};
- assert.equal(preferenceKey(first),'healthkit:50:minha natacao');
  const sent=[];const queue=new HealthImportQueue(async payload=>{sent.push(payload);return ok();});
- await queue.automatic([first,second],catalog,'one',()=>true,{[preferenceKey(first)]:{activity_type:'yoga'},[preferenceKey(second)]:{activity_type:'walking'}});
+ await queue.automatic([first,second],catalog,'one',()=>true,{'healthkit:50':{activity_type:'yoga'}});
  assert.deepEqual(sent.map(item=>item.activity_type),['yoga','walking']);
- assert.deepEqual(sent.map(item=>item.workout_name),['Minha Natação','Minha caminhada']);
+ assert.deepEqual(sent.map(item=>item.workout_name),['Minha Yoga','Minha caminhada']);
 });

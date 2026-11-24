@@ -1,12 +1,9 @@
 import type { CatalogItem } from '../api/contracts';
 import type { HealthWorkout } from './model';
 import { importPayload } from './importPayload';
-import { nativeWorkoutActivityCode, normalizeActivityName, resolveWorkoutActivity } from './workoutMapping';
+import { nativeWorkoutActivityCode, resolveWorkoutActivity } from './workoutMapping';
 
 export const workoutActivityCode=(workout:HealthWorkout,catalog?:CatalogItem[])=>catalog ? resolveWorkoutActivity(workout,catalog)?.code ?? '' : nativeWorkoutActivityCode(workout);
-export type WorkoutPreference={activity_type:string};
-export const preferenceKey=(workout:HealthWorkout)=>workout.nativeType ? `${workout.source}:${workout.nativeType}${normalizeActivityName(workout.name || '') ? `:${normalizeActivityName(workout.name || '')}` : ''}` : '';
-export const workoutPreference=(workout:HealthWorkout,preferences:Record<string,WorkoutPreference>)=>preferences[preferenceKey(workout)] ?? preferences[`${workout.source}:${workout.nativeType}`];
 export type ImportStatus={status:'sending'|'imported'|'review'|'failed';message?:string;awardedEv?:number|null;retryable?:boolean;blockBatch?:boolean;cycle?:string};
 export type WorkoutPayload=ReturnType<typeof importPayload> & {import_mode:'manual'|'automatic'};
 export class HealthImportQueue {
@@ -44,7 +41,7 @@ export class HealthImportQueue {
     }});
     this.pending.set(workout.id,task);return task;
   }
-  async automatic(workouts:HealthWorkout[],catalog:CatalogItem[],cycle:string,allowed:()=>boolean,preferences:Record<string,WorkoutPreference>={}):Promise<boolean> {
+  async automatic(workouts:HealthWorkout[],catalog:CatalogItem[],cycle:string,allowed:()=>boolean):Promise<boolean> {
     if(this.batching || this.stopped || this.pausedCycle===cycle || !allowed())return false;
     this.batching=true;let imported=false;
     try {
@@ -54,10 +51,9 @@ export class HealthImportQueue {
         const prior=this.state[workout.id];
         if(prior?.status==='imported' || prior?.status==='sending' || prior?.cycle===cycle)continue;
         if(prior?.status==='review' && prior.retryable===false)continue;
-        const preference=workoutPreference(workout,preferences);
-        const item=catalog.find(item=>item.code===(preference?.activity_type ?? workoutActivityCode(workout,catalog)));
+        const item=catalog.find(item=>item.code===workoutActivityCode(workout,catalog));
         if(!item || item.scoring_status!=='configured' || (item.energy_dimension!=='physical' && item.energy_dimension!=='intellectual')) {
-          this.update(workout.id,{status:'review',message:'Selecione uma atividade do catálogo para vincular este treino.',cycle});continue;
+          this.update(workout.id,{status:'review',message:'A categoria deste treino ainda não está disponível para importação.',cycle});continue;
         }
         await this.submit(workout,item.code,'automatic',allowed,cycle);
         if(this.state[workout.id]?.status==='imported')imported=true;

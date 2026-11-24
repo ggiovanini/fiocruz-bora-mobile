@@ -137,3 +137,12 @@ test('a failed initial goal request keeps onboarding pending and can be retried'
  await h.api.selectInitialGoal(30);
  assert.equal(h.current.current.initialGoalSelected,true);
 });
+
+test('concurrent full refreshes share one journey load',async()=>{
+ const h=harness();
+ await Promise.all([h.api.refresh(),h.api.refresh(),h.api.refresh()]);
+ assert.equal(h.calls.filter(call=>call.url==='/me').length,1);
+ assert.equal(h.calls.filter(call=>call.url==='/me/energy').length,1);
+ await h.api.refresh();
+ assert.equal(h.calls.filter(call=>call.url==='/me').length,2);
+});

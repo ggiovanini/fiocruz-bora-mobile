@@ -169,3 +169,21 @@ test("iOS authorizes only workouts, never queries steps and normalizes active du
   assert.equal(result.workouts[0].name, 'Minha caminhada');
   assert.equal(result.workouts[0].kind, 'Caminhada');
 });
+
+test('Android retains a custom title and identifies untitled Pilates and tennis sessions',async()=>{
+ const hc={ExerciseType:{...exercise,PILATES:48,TENNIS:76},initialize:async()=>true,
+  getGrantedPermissions:async()=>[{accessType:'read',recordType:'ExerciseSession'}],
+  readRecords:async()=>({records:[{...record('pilates'),exerciseType:48,title:undefined},{...record('tennis'),exerciseType:76,title:undefined},{...record('custom'),exerciseType:76,title:'Meu jogo de tênis'}]})};
+ const adapter=load('src/health/adapter.android.ts',{'./model':model,'react-native-health-connect':hc}).default;
+ const result=await adapter.read(days);
+ assert.deepEqual(result.workouts.map(row=>row.name||row.kind),['Pilates','Tênis','Meu jogo de tênis']);
+});
+test('iOS identifies untitled Pilates and tennis sessions without replacing supplied titles',async()=>{
+ const hk={WorkoutActivityType:{pilates:66,tennis:48},queryWorkoutSamples:async()=>[66,48].map((type,i)=>({
+  uuid:String(i),sourceRevision:{source:{name:'Watch'}},workoutActivityType:type,
+  startDate:new Date('2026-10-01T10:00:00Z'),endDate:new Date('2026-10-01T10:30:00Z'),duration:{quantity:1800,unit:'s'},
+ }))};
+ const adapter=load('src/health/adapter.ios.ts',{'./model':model,'@kingstinct/react-native-healthkit':hk,'react-native':{Linking:{}}}).default;
+ const result=await adapter.read(days);
+ assert.deepEqual(result.workouts.map(row=>row.name||row.kind),['Pilates','Tênis']);
+});

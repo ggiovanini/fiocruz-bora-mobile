@@ -4,7 +4,7 @@ Atualizado em 09/11/2026.
 
 ## Experiência
 
-- Login com apenas a assinatura Bóra/Fiocruz, nova imagem do Bean convidando a entrar, “Bóra começar?”, a frase “Mexa-se pela mente, mova-se pela vida.” e um botão “Entrar com Login Único”. Mensagens de falha/conexão aparecem somente quando necessárias. Os cenários de demonstração foram retirados desta tela.
+- Login com apenas a assinatura Bóra/Fiocruz, nova imagem do Bean convidando a entrar, “Bóra começar?”, a frase “Mexa-se pela mente, mova-se pela vida!” e um botão “Entrar com Login Único”. Mensagens de falha/conexão aparecem somente quando necessárias. Os cenários de demonstração foram retirados desta tela.
 - A disposição segue a referência enviada: logo no alto, título e texto alinhados à esquerda, um único botão abaixo e Bean ampliado na base, com recorte nas bordas. As cores e a identidade visual do Bóra foram mantidas.
 - A escolha da organização acontece após o acesso, durante o cadastro. Em seguida aparece “Sua escolha está salva!”, explicando que alguém da organização confirmará a participação e que a jornada pessoal já pode começar.
 - Depois dos termos/perfil e antes de liberar a interação com o app, aparecem duas explicações: notificações e câmera. Cada uma tem um pedido explícito e a opção “Agora não”. Não se abre a câmera nessa apresentação.

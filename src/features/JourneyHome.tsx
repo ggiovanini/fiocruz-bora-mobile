@@ -67,9 +67,9 @@ export default function JourneyHome() {
         <View style={[s.stat, s.statMiddle]}><View style={s.evNumber}><Icon name="bolt" color={colors.primary} size={21}/><Text style={s.total}>{daily.total}<Text style={s.evUnit}> EV</Text></Text></View><Text style={s.statLabel}>ENERGIA DE HOJE</Text></View>
         <Pressable accessibilityRole="button" accessibilityLabel={`Meu ritmo: ${streak} dias. Ver calendário.`} style={s.stat} onPress={() => router.push('/constancy')}><Text style={s.statNumber}>{streak} <Text style={s.days}>{streak === 1 ? 'dia' : 'dias'}</Text></Text><Text style={s.statLabel}>MEU RITMO</Text></Pressable>
       </View>
-      <View style={s.motto} accessible accessibilityLabel="Mova-se pela vida, mexa-se pela mente.">
-        <Text style={[s.mottoLine, { color: colors.lime }]}>Mova-se pela vida,</Text>
-        <Text style={[s.mottoLine, { color: colors.primary }]}>mexa-se pela mente.</Text>
+      <View style={s.motto} accessible accessibilityLabel="Mexa-se pela mente, mova-se pela vida!">
+        <Text style={[s.mottoLine, { color: colors.lime }]}>Mexa-se pela mente,</Text>
+        <Text style={[s.mottoLine, { color: colors.primary }]}>mova-se pela vida!</Text>
       </View>
       <View style={s.hero}>
         <HomeAvatarStage physicalProgress={daily.greenProgress} mentalProgress={daily.blueProgress} complete={daily.complete}/>

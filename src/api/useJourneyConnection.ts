@@ -78,7 +78,17 @@ export function useJourneyConnection(current: MutableRefObject<MockState>, commi
       throw failure;
     } finally { if (request === sequence.current) setBusy(false); }
   }, []);
-  const refresh = async () => { if (current.current.userId) await connect(current.current.userId, current.current.membershipId); };
+  const refreshing = useRef<{key:string; task:Promise<void>} | null>(null);
+  const refresh = async () => {
+    const {userId,membershipId}=current.current;
+    if (!userId) return;
+    const key=JSON.stringify([generation.current,userId,membershipId]);
+    if (refreshing.current?.key===key) return refreshing.current.task;
+    const task=connect(userId,membershipId);
+    refreshing.current={key,task};
+    try { await task; }
+    finally { if (refreshing.current?.task===task) refreshing.current=null; }
+  };
   // Refresh only energy after a successful activity; profile/catalog/history are unchanged.
   const refreshEnergy = async () => {
     const token = generation.current;

@@ -1,24 +1,19 @@
 import { ActivityListCard, activityMinutes } from '../history/HistoryViews';
-import {useEffect,useState} from 'react';
-import {View} from 'react-native';
+import {useState} from 'react';
 import {Button,Card,Check,Copy,Notice} from '@/ui/Flow';
 import {Sheet} from '@/ui/Sheet';
-import {Chip} from '@/components/ActivityUI';
 import type {CatalogItem} from '@/api/contracts';
-import {workoutActivityCode,type WorkoutPreference,type ImportStatus} from '@/health/importQueue';
+import {workoutActivityCode,type ImportStatus} from '@/health/importQueue';
 import type {HealthWorkout} from '@/health/model';
 
-export function WorkoutImportView({workout,preference,entry,items,membershipLabel,canSend,consentGranted,available=true,illustrative=false,onSend}:{
- workout:HealthWorkout;preference?:WorkoutPreference;entry?:ImportStatus;items:CatalogItem[];membershipLabel:string;canSend:boolean;consentGranted:boolean;available?:boolean;illustrative?:boolean;onSend:(type:string,remember?:boolean)=>Promise<void>;
+export function WorkoutImportView({workout,entry,items,membershipLabel,canSend,consentGranted,available=true,illustrative=false,onSend}:{
+ workout:HealthWorkout;entry?:ImportStatus;items:CatalogItem[];membershipLabel:string;canSend:boolean;consentGranted:boolean;available?:boolean;illustrative?:boolean;onSend:(type:string)=>Promise<void>;
 }) {
  const imported=entry?.status==='imported';
  const result=entry?.awardedEv;
  const [detailsOpen,setDetailsOpen]=useState(false);
- const [type,setType]=useState(workoutActivityCode(workout,items));
+ const type=workoutActivityCode(workout,items);
  const [confirmed,setConfirmed]=useState(false),[localBusy,setBusy]=useState(false),[error,setError]=useState('');
- const [remember,setRemember]=useState(false);
- useEffect(()=>{if(preference){setType(preference.activity_type);setConfirmed(false);}},[preference]);
- useEffect(()=>{if(!type)setType(workoutActivityCode(workout,items));},[workout,items,type]);
  const busy=localBusy || entry?.status==='sending';
  const catalog=items.filter(t=>t.scoring_status === 'configured' && (t.energy_dimension === 'physical' || t.energy_dimension === 'intellectual'));
  const chosen=catalog.find(t=>t.code===type);
@@ -26,7 +21,7 @@ export function WorkoutImportView({workout,preference,entry,items,membershipLabe
   if (!canSend || !confirmed || busy || imported) return;
   setBusy(true);setError('');
   try {
-   await onSend(type,remember);
+   await onSend(type);
   }catch(e){setError(e instanceof Error?e.message:'Não foi possível enviar. Tente novamente.');}finally{setBusy(false);}
  };
  const detail = <Card title={workout.name || workout.kind}>
@@ -34,11 +29,9 @@ export function WorkoutImportView({workout,preference,entry,items,membershipLabe
   <Copy muted>Origem no aparelho: {workout.origin}</Copy>
   {imported ? <Notice>Treino confirmado na jornada{result!=null ? ` · ${result} EV` : '. Pontuação ainda não configurada'}. Reenvios do mesmo treino não concedem pontos novamente.</Notice> : available ? <>
    <Copy>Registrar em: {membershipLabel}</Copy>
-   <Copy muted>Seu treino mantém esse nome. Confira a categoria usada para calcular EV:</Copy>
-   <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>{catalog.map(t=><Chip key={t.code} label={t.name} selected={type===t.code} onPress={()=>{if(!busy){setType(t.code);setConfirmed(false);}}}/>)}</View>
-   {chosen && <Copy muted>Energia {chosen.energy_dimension === 'physical' ? 'física' : 'mental'}</Copy>}
-   {!chosen && <Copy muted>Selecione a atividade para continuar.</Copy>}
-   {!!workout.nativeType && !illustrative && <Check label="Lembrar esta categoria para treinos com este nome." value={remember} onChange={value=>{if(!busy)setRemember(value);}}/>}
+   <Copy muted>O nome do dispositivo é mantido. A categoria para calcular EV é identificada automaticamente.</Copy>
+   {chosen && <Copy muted>Categoria: {chosen.name} · Energia {chosen.energy_dimension === 'physical' ? 'física' : 'mental'}</Copy>}
+   {!chosen && <Copy muted>A categoria deste treino ainda não está disponível para importação.</Copy>}
    <Check label={illustrative ? 'Confirmo os dados deste treino de exemplo.' : 'Confirmo que este treino não foi registrado manualmente e autorizo enviar seu nome, tipo, duração, horários e identificador para registrar na jornada e calcular EV.'} value={confirmed} onChange={value=>{if(!busy)setConfirmed(value);}}/>
    <Button title={busy?'Enviando…':illustrative?'Simular envio':'Enviar treino para a jornada'} disabled={busy||!confirmed||!chosen||!canSend||!consentGranted} onPress={()=>void send()}/>
    {!consentGranted && <Copy muted>É necessário aceitar os termos vigentes de registro de atividades antes de importar.</Copy>}

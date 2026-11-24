@@ -104,3 +104,12 @@ O workspace `ios/Bra.xcworkspace`, scheme Bra, Release para dispositivo genéric
 Abrir `ios/Bra.xcworkspace`, escolher um destino de dispositivo iOS e usar Product → Archive; depois Validate App / Distribute App para TestFlight. O Archive e o envio à Apple ficam para o Xcode; não foram executados nesta preparação.
 
 Inclui ajustes no retorno de login, escolha da meta inicial e preservação/reutilização de nomes de treinos. A API atualizada e sua migration de meta inicial também precisam ser publicadas; a preparação do aplicativo não publica o backend.
+
+
+## Versão 1.0.2 · build 161 · 17/11/2026
+
+Número incrementado de 160 para 161 em `app.json`, `Info.plist` e configurações Debug/Release do Xcode. Prebuild das duas plataformas executado com `--no-clean --no-install`. Os 118 pods foram preparados com `pod install --deployment`, mantendo o lockfile.
+
+Workspace `ios/Bra.xcworkspace`, scheme Bra, Release para dispositivo iOS: versão 1.0.2, build 161 e identificador `br.fiocruz.mobile.bora`. Os 149 testes do aplicativo passaram. Inclui importação de treinos com classificação automática, reconhecimento ampliado dos nomes das modalidades, remoção do uso de vínculos manuais antigos e redução de solicitações repetidas.
+
+Abrir o workspace no Xcode e usar Product → Archive. O Archive e o envio à Apple ficam para o usuário.

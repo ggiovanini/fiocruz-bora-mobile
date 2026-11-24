@@ -90,3 +90,27 @@ test('an expired saved credential is removed before a new institutional login',a
  assert.equal(logins,1);
  assert.equal(JSON.parse(api.storage.get(key)).token,'fresh');
 });
+
+test('simultaneous reads share a request but writes and different readers do not',async t=>{
+ const api=setup(t);let calls=0,release;
+ const gate=new Promise(resolve=>release=resolve);
+ t.mock.method(globalThis,'fetch',async()=>{calls++;await gate;return {ok:true,status:200,json:async()=>({data:'same'})};});
+ const requests=[api.apiRequest('/me'),api.apiRequest('/me'),api.apiRequest('/me/energy'),api.apiRequest('/me',{method:'PATCH',body:'{}'})];
+ await new Promise(resolve=>setImmediate(resolve));assert.equal(calls,3);
+ release();assert.deepEqual((await Promise.all(requests)).map(row=>row.data),['same','same','same','same']);
+ await api.apiRequest('/me');assert.equal(calls,4);
+});
+test('429 respects Retry-After across screens and permits a retry after cooldown',async t=>{
+ const api=setup(t);let calls=0,now=Date.now();
+ t.mock.method(Date,'now',()=>now);
+ t.mock.method(globalThis,'fetch',async()=>{
+  calls++;
+  return calls===1 ? {ok:false,status:429,headers:{get:()=> '30'},json:async()=>({})}
+   : {ok:true,status:200,json:async()=>({data:'ok'})};
+ });
+ await assert.rejects(api.apiRequest('/me'),e=>e.status===429&&e.retryAfterSeconds===30);
+ await assert.rejects(api.apiRequest('/me/energy'),e=>e.status===429);
+ await assert.rejects(api.apiRequest('/health-workouts',{method:'POST'}),e=>e.status===429);
+ assert.equal(calls,1);now+=31000;
+ assert.equal((await api.apiRequest('/me')).data,'ok');assert.equal(calls,2);
+});

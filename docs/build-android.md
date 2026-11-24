@@ -22,7 +22,7 @@ npx expo run:android
 
 ## Identidade
 
-O identificador atual é `br.fiocruz.mobile.bora`, com versão 1.0.2 e versionCode 160. O identificador anterior, `br.fiocruz.boramobile`, representa outra instalação no Android; o sistema não migra seus dados locais automaticamente. Para próximos builds distribuídos, incremente `android.versionCode` em `app.json`.
+O identificador atual é `br.fiocruz.mobile.bora`, com versão 1.0.2 e versionCode 161. O identificador anterior, `br.fiocruz.boramobile`, representa outra instalação no Android; o sistema não migra seus dados locais automaticamente. Para próximos builds distribuídos, incremente `android.versionCode` em `app.json`.
 
 ## Configurações que precisam sobreviver ao prebuild
 
@@ -113,3 +113,17 @@ Entregues em `Clients/Fiocruz/Projeto Bora/assinatura-android`:
 Assinaturas verificadas e comparadas ao certificado público de upload; integridade dos dois arquivos e presença de `armeabi-v7a`, `arm64-v8a`, `x86` e `x86_64` conferidas. Pacote `br.fiocruz.mobile.bora`, versão 1.0.2 e build 160 confirmados no APK. A URL de staging de `.env.testflight` está incorporada no bundle, e o fluxo Release desabilita o login local. Os 145 testes do app passaram após o prebuild.
 
 Nenhum envio à loja ou teste deste binário em aparelho foi realizado. Publicar também a API atualizada e sua migration de meta inicial para disponibilizar por completo as melhorias de sessão, meta e nomes de treinos.
+
+
+## Versão 1.0.2 · build 161 · 17/11/2026
+
+Build incrementado de 160 para 161 em Android e iOS. Prebuild das duas plataformas concluído com `--no-clean --no-install`. Compilação Android Release concluída com `assembleRelease bundleRelease`, Node 24.22.3 e JDK 17. A assinatura usa a chave de upload existente, aplicada por um script temporário fora do repositório, sem copiar credenciais para o projeto.
+
+Arquivos entregues em `Clients/Fiocruz/Projeto Bora/assinatura-android`:
+
+- `bora-1.0.2-161.apk`: 152.357.686 bytes, para instalação direta.
+- `bora-1.0.2-161.aab`: 102.114.495 bytes, para Google Play.
+
+Assinaturas verificadas contra o certificado público de upload; integridade dos arquivos e das cópias conferida. As quatro arquiteturas foram preservadas: armeabi-v7a, arm64-v8a, x86 e x86_64. O APK confirma pacote `br.fiocruz.mobile.bora`, versão 1.0.2 e build 161. A URL de `.env.testflight` está incorporada ao bundle, e a configuração Release desabilita login local. Os 149 testes do app passaram.
+
+Inclui importação de treinos com classificação automática, nomes das modalidades e controle de solicitações repetidas. Nenhum envio à Google Play ou teste deste binário em aparelho foi realizado. O iOS está preparado no workspace `ios/Bra.xcworkspace` para o Archive pelo usuário no Xcode.

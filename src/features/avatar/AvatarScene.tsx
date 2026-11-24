@@ -1,8 +1,15 @@
-import { useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
-import { Group, Mesh } from 'three';
-export type Motion = 'idle' | 'walk' | 'celebrate';
-export type SceneProps = { motion: Motion; playing: boolean; speed: number; greenProgress: number; blueProgress: number; showPlatform?: boolean; appearance?: { base_hex: string; accent_hex: string } };
+import { useEffect, useRef, type RefObject } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { Group, MathUtils, Mesh } from 'three';
+import { BEAN_PREVIEW_FLOOR, useBeanPreview } from './useBeanPreview';
+export type Motion = 'idle' | 'walk' | 'wave' | 'celebrate';
+type BeanTurn = {
+  pivot: RefObject<Group | null>;
+  angle: number | null;
+  reduceAnimation: boolean;
+};
+
+export type SceneProps = { motion: Motion; motionRequest?: number; beanTurn?: BeanTurn; playing: boolean; speed: number; greenProgress: number; blueProgress: number; showPlatform?: boolean; beanPreview?: boolean; appearance?: { base_hex: string; accent_hex: string } };
 export type ViewportProps = SceneProps & { rendering?: boolean; zoom?: number };
 
 function Limb({ x, leg = false, side, motion, time, baseColor, accentColor }: { baseColor: string; accentColor: string; x: number; leg?: boolean; side: number; motion: Motion; time: React.MutableRefObject<number> }) {
@@ -19,12 +26,20 @@ function Limb({ x, leg = false, side, motion, time, baseColor, accentColor }: { 
   </group>;
 }
 
-export function AvatarScene({ motion, playing, speed, greenProgress, blueProgress, showPlatform = true, appearance }: SceneProps) {
+export function AvatarScene({ motion, motionRequest = 0, beanTurn, playing, speed, greenProgress, blueProgress, showPlatform = true, beanPreview = false, appearance }: SceneProps) {
+  const beanModel = useBeanPreview(beanPreview, motion === 'walk' ? 'idle' : motion, playing && motion !== 'walk', speed, motionRequest, appearance?.base_hex, appearance?.accent_hex);
+  const showBean = beanPreview && motion !== 'walk';
+  const bean = showBean ? beanModel : null;
+  const floor = bean ? BEAN_PREVIEW_FLOOR : -1.65;
   const baseColor = appearance?.base_hex ?? '#58e52d';
   const accentColor = appearance?.accent_hex ?? '#087fbc';
   const body = useRef<Group>(null);
   const time = useRef(0);
   const base = useRef<Mesh>(null);
+  const invalidate = useThree(state => state.invalidate);
+  const angle = beanTurn?.angle;
+  const reduceAnimation = beanTurn?.reduceAnimation;
+  useEffect(() => { invalidate(); }, [angle, reduceAnimation, invalidate]);
   useFrame((_, delta) => {
     if (playing) time.current += Math.min(delta, .05) * speed;
     const t = time.current;
@@ -32,24 +47,37 @@ export function AvatarScene({ motion, playing, speed, greenProgress, blueProgres
       body.current.position.y = motion === 'celebrate' ? Math.abs(Math.sin(t * 4)) * .3 : Math.sin(t * (motion === 'walk' ? 10 : 2)) * .035;
       body.current.rotation.y = motion === 'celebrate' ? Math.sin(t * 2) * .35 : -.15;
     }
+    const pivot = beanTurn?.pivot.current;
+    if (pivot) {
+      if (angle != null || reduceAnimation) {
+        pivot.rotation.y = angle ?? 0;
+      } else if (pivot.rotation.y !== 0) {
+        const next = MathUtils.damp(pivot.rotation.y, 0, 9, Math.min(delta, .05));
+        pivot.rotation.y = Math.abs(next) < .005 ? 0 : next;
+        if (pivot.rotation.y !== 0) invalidate();
+      }
+    }
     if (base.current) base.current.rotation.z = t * .2;
   });
   return <>
     <ambientLight intensity={1.8} /><directionalLight position={[3, 5, 5]} intensity={2.5} color="#c9faff" />
     <pointLight position={[-3, 1, 2]} intensity={12} color="#0a9ff5" />
-    <group ref={body}>
-      <mesh position={[0, .25, 0]} scale={[.42, .78, .25]}><sphereGeometry args={[1, 24, 24]} /><meshStandardMaterial color={baseColor} roughness={.45} /></mesh>
-      <mesh position={[0, -.27, .02]} rotation={[0, 0, -.2]} scale={[.44, .45, .27]}><sphereGeometry args={[1, 20, 16]} /><meshStandardMaterial color={baseColor} /></mesh>
-      <mesh position={[0, 1.15, 0]}><cylinderGeometry args={[.1, .13, .3, 12]} /><meshStandardMaterial color={baseColor} /></mesh>
-      <mesh position={[0, 1.65, -.05]} scale={[.4, .64, .28]}><sphereGeometry args={[1, 24, 24]} /><meshStandardMaterial color={accentColor} roughness={.35} /></mesh>
-      <mesh position={[.02, 2.2, -.06]} rotation={[0, 0, .13]}><coneGeometry args={[.29, .85, 24]} /><meshStandardMaterial color={accentColor} roughness={.35} /></mesh>
-      <mesh position={[0, 1.53, .21]} scale={[.29, .36, .14]}><sphereGeometry args={[1, 24, 24]} /><meshStandardMaterial color={baseColor} roughness={.5} /></mesh>
-      <Limb baseColor={baseColor} accentColor={accentColor} x={-.43} side={-1} motion={motion} time={time} /><Limb baseColor={baseColor} accentColor={accentColor} x={.43} side={1} motion={motion} time={time} />
-      <Limb baseColor={baseColor} accentColor={accentColor} x={-.21} side={-1} leg motion={motion} time={time} /><Limb baseColor={baseColor} accentColor={accentColor} x={.21} side={1} leg motion={motion} time={time} />
+    <group ref={beanTurn?.pivot}>
+      {bean && <primitive object={bean} />}
+      {!showBean && <group ref={body}>
+        <mesh position={[0, .25, 0]} scale={[.42, .78, .25]}><sphereGeometry args={[1, 24, 24]} /><meshStandardMaterial color={baseColor} roughness={.45} /></mesh>
+        <mesh position={[0, -.27, .02]} rotation={[0, 0, -.2]} scale={[.44, .45, .27]}><sphereGeometry args={[1, 20, 16]} /><meshStandardMaterial color={baseColor} /></mesh>
+        <mesh position={[0, 1.15, 0]}><cylinderGeometry args={[.1, .13, .3, 12]} /><meshStandardMaterial color={baseColor} /></mesh>
+        <mesh position={[0, 1.65, -.05]} scale={[.4, .64, .28]}><sphereGeometry args={[1, 24, 24]} /><meshStandardMaterial color={accentColor} roughness={.35} /></mesh>
+        <mesh position={[.02, 2.2, -.06]} rotation={[0, 0, .13]}><coneGeometry args={[.29, .85, 24]} /><meshStandardMaterial color={accentColor} roughness={.35} /></mesh>
+        <mesh position={[0, 1.53, .21]} scale={[.29, .36, .14]}><sphereGeometry args={[1, 24, 24]} /><meshStandardMaterial color={baseColor} roughness={.5} /></mesh>
+        <Limb baseColor={baseColor} accentColor={accentColor} x={-.43} side={-1} motion={motion} time={time} /><Limb baseColor={baseColor} accentColor={accentColor} x={.43} side={1} motion={motion} time={time} />
+        <Limb baseColor={baseColor} accentColor={accentColor} x={-.21} side={-1} leg motion={motion} time={time} /><Limb baseColor={baseColor} accentColor={accentColor} x={.21} side={1} leg motion={motion} time={time} />
+      </group>}
     </group>
     {showPlatform && <>
-    <mesh ref={base} position={[0, -1.65, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[.65, .72, 64]} /><meshBasicMaterial color="#0a9ff5" side={2} /></mesh>
-    <mesh position={[0, -1.66, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[.5, 48]} /><meshBasicMaterial color="#124d59" side={2} /></mesh>
+    <mesh ref={base} position={[0, floor, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[.65, .72, 64]} /><meshBasicMaterial color="#0a9ff5" side={2} /></mesh>
+    <mesh position={[0, floor - .01, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[.5, 48]} /><meshBasicMaterial color="#124d59" side={2} /></mesh>
     </>}
   </>;
 }

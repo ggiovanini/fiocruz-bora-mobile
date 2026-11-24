@@ -16,7 +16,7 @@ export default function LoginScreen({ loading, expired, offline, error, onLogin,
       <View style={s.logo}><Brand /></View>
       <View style={[s.copy, { marginTop: Math.min(72, Math.max(36, height * 0.075)) }]}>
         <Text accessibilityRole="header" style={s.title}>Bóra{ '\n' }começar?</Text>
-        <Text style={s.phrase}>Mexa-se pela mente,{ '\n' }mova-se pela vida.</Text>
+        <Text style={s.phrase}>Mexa-se pela mente,{ '\n' }mova-se pela vida!</Text>
       </View>
       {!!error && <View style={s.feedback}><Notice>{error}</Notice></View>}
       {expired && !error && <View style={s.feedback}><Notice>Bom ter você de volta! Entre para continuar de onde parou.</Notice></View>}
